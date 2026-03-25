@@ -6,7 +6,7 @@ import BookCard from "@/components/BookCard";
 import Navbar from "@/components/Navbar";
 import { Input } from "@/components/ui/input";
 import { useToast } from "@/hooks/use-toast";
-import { Search, Library } from "lucide-react";
+import { Search, Library, BookOpen } from "lucide-react";
 
 const Index = () => {
   const { user } = useAuth();
