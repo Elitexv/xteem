@@ -120,5 +120,4 @@ const Index = () => {
   );
 };
 
-import { BookOpen } from "lucide-react";
 export default Index;
