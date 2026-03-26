@@ -14,6 +14,7 @@ const MyBooks = () => {
   const { user } = useAuth();
   const { toast } = useToast();
   const queryClient = useQueryClient();
+  const [readingBook, setReadingBook] = useState<{ title: string; pdfUrl: string } | null>(null);
 
   const { data: borrowings, isLoading } = useQuery({
     queryKey: ["my-borrowings", user?.id],
