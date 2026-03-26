@@ -4,12 +4,14 @@ import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
 import Navbar from "@/components/Navbar";
 import { Button } from "@/components/ui/button";
-import { Card, CardContent } from "@/components/ui/card";
+import { Card, CardContent, CardFooter } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
+import { Progress } from "@/components/ui/progress";
 import { useToast } from "@/hooks/use-toast";
-import { BookOpen, RotateCcw, Eye } from "lucide-react";
-import { format } from "date-fns";
+import { BookOpen, RotateCcw, Eye, Clock, Calendar, CheckCircle2 } from "lucide-react";
+import { format, differenceInDays } from "date-fns";
 import PdfViewer from "@/components/PdfViewer";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 
 const MyBooks = () => {
   const { user } = useAuth();
@@ -49,88 +51,133 @@ const MyBooks = () => {
       }
     },
     onSuccess: () => {
-      toast({ title: "Book returned!" });
+      toast({ title: "Book returned successfully!" });
       queryClient.invalidateQueries({ queryKey: ["my-borrowings"] });
       queryClient.invalidateQueries({ queryKey: ["books"] });
     },
-    onError: (error: Error) => {
-      toast({ title: "Failed to return", description: error.message, variant: "destructive" });
-    },
   });
 
-  return (
-    <div className="min-h-screen bg-background">
-      <Navbar />
-      <div className="container mx-auto px-4 py-8 max-w-3xl">
-        <h1 className="font-display text-3xl font-bold mb-6">My Borrowed Books</h1>
+  // UX Logic: Separate active reads from history
+  const activeBorrowings = borrowings?.filter(b => b.status === 'borrowed') || [];
+  const returnedHistory = borrowings?.filter(b => b.status === 'returned') || [];
 
-        {isLoading ? (
-          <div className="space-y-4">
-            {Array.from({ length: 3 }).map((_, i) => (
-              <div key={i} className="h-24 bg-muted rounded-lg animate-pulse" />
-            ))}
+  return (
+    <div className="min-h-screen bg-muted/30">
+      <Navbar />
+      
+      <main className="container mx-auto px-4 py-8 max-w-5xl">
+        <header className="mb-8">
+          <h1 className="text-3xl font-bold tracking-tight">Personal Library</h1>
+          <p className="text-muted-foreground">Manage your active loans and reading history.</p>
+        </header>
+
+        <Tabs defaultValue="current" className="space-y-6">
+          <div className="flex items-center justify-between">
+            <TabsList className="bg-background border">
+              <TabsTrigger value="current" className="gap-2">
+                Active <Badge variant="secondary" className="h-5 px-1.5">{activeBorrowings.length}</Badge>
+              </TabsTrigger>
+              <TabsTrigger value="history">History</TabsTrigger>
+            </TabsList>
           </div>
-        ) : borrowings && borrowings.length > 0 ? (
-          <div className="space-y-3">
-            {borrowings.map((b) => {
-              const book = b.books as any;
-              return (
-                <Card key={b.id} className="animate-fade-in">
-                  <CardContent className="p-4 flex items-center gap-4">
-                    <div className="h-16 w-12 bg-secondary rounded flex-shrink-0 flex items-center justify-center overflow-hidden">
-                      {book?.cover_url ? (
-                        <img src={book.cover_url} alt="" className="h-full w-full object-cover" />
-                      ) : (
-                        <BookOpen className="h-5 w-5 text-muted-foreground/40" />
-                      )}
-                    </div>
-                    <div className="flex-1 min-w-0">
-                      <p className="font-display font-semibold truncate">{book?.title}</p>
-                      <p className="text-sm text-muted-foreground">{book?.author}</p>
-                      <p className="text-xs text-muted-foreground">
-                        Borrowed {format(new Date(b.borrowed_at), "MMM d, yyyy")} · Due {format(new Date(b.due_date), "MMM d, yyyy")}
-                      </p>
-                    </div>
-                    <div className="flex items-center gap-2">
-                      {b.status === "borrowed" && (book as any)?.pdf_url && (
-                        <Button
-                          size="sm"
-                          variant="outline"
-                          onClick={() => setReadingBook({ title: book?.title, pdfUrl: (book as any).pdf_url })}
-                          className="gap-1"
-                        >
-                          <Eye className="h-3 w-3" />
-                          Read
-                        </Button>
-                      )}
-                      <Badge variant={b.status === "borrowed" ? "default" : "secondary"}>
-                        {b.status}
-                      </Badge>
-                      {b.status === "borrowed" && (
-                        <Button
-                          size="sm"
-                          variant="outline"
+
+          <TabsContent value="current" className="animate-in fade-in slide-in-from-left-4 duration-300">
+            {activeBorrowings.length > 0 ? (
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                {activeBorrowings.map((b) => {
+                  const book = b.books as any;
+                  const daysLeft = differenceInDays(new Date(b.due_date), new Date());
+                  const progressValue = Math.max(0, Math.min(100, (daysLeft / 14) * 100)); // Assuming 14-day loan
+
+                  return (
+                    <Card key={b.id} className="overflow-hidden flex flex-col group hover:shadow-md transition-all border-border/50">
+                      <div className="aspect-[3/2] relative bg-muted overflow-hidden">
+                        {book?.cover_url ? (
+                          <img src={book.cover_url} alt="" className="object-cover w-full h-full group-hover:scale-105 transition-transform duration-500" />
+                        ) : (
+                          <div className="flex items-center justify-center h-full"><BookOpen className="h-12 w-12 text-muted-foreground/20" /></div>
+                        )}
+                        <div className="absolute top-2 right-2">
+                          <Badge className={daysLeft < 3 ? "bg-destructive" : "bg-primary/90"}>
+                            {daysLeft <= 0 ? "Due Today" : `${daysLeft} days left`}
+                          </Badge>
+                        </div>
+                      </div>
+
+                      <CardContent className="p-5 flex-1">
+                        <h3 className="font-bold text-lg leading-tight mb-1 line-clamp-1">{book?.title}</h3>
+                        <p className="text-sm text-muted-foreground mb-4">{book?.author}</p>
+                        
+                        <div className="space-y-2">
+                          <div className="flex justify-between text-xs font-medium">
+                            <span className="flex items-center gap-1"><Clock className="h-3 w-3" /> Loan Period</span>
+                            <span>{Math.round(progressValue)}% time left</span>
+                          </div>
+                          <Progress value={progressValue} className="h-1.5" />
+                        </div>
+                      </CardContent>
+
+                      <CardFooter className="p-4 bg-muted/50 border-t flex gap-2">
+                        {book?.pdf_url && (
+                          <Button 
+                            className="flex-1 gap-2 shadow-sm" 
+                            onClick={() => setReadingBook({ title: book?.title, pdfUrl: book.pdf_url })}
+                          >
+                            <Eye className="h-4 w-4" /> Read Now
+                          </Button>
+                        )}
+                        <Button 
+                          variant="outline" 
+                          size="icon" 
+                          className="shrink-0 hover:bg-destructive/10 hover:text-destructive"
                           onClick={() => returnMutation.mutate({ borrowingId: b.id, bookId: b.book_id })}
-                          disabled={returnMutation.isPending}
-                          className="gap-1"
                         >
-                          <RotateCcw className="h-3 w-3" />
-                          Return
+                          <RotateCcw className="h-4 w-4" />
                         </Button>
-                      )}
-                    </div>
-                  </CardContent>
-                </Card>
-              );
-            })}
-          </div>
-        ) : (
-          <div className="text-center py-20 text-muted-foreground">
-            <BookOpen className="h-16 w-16 mx-auto mb-4 opacity-30" />
-            <p>You haven't borrowed any books yet.</p>
-          </div>
-        )}
-      </div>
+                      </CardFooter>
+                    </Card>
+                  );
+                })}
+              </div>
+            ) : (
+              <EmptyShelf message="You don't have any books checked out." />
+            )}
+          </TabsContent>
+
+          <TabsContent value="history" className="animate-in fade-in slide-in-from-right-4 duration-300">
+             <div className="rounded-xl border bg-background overflow-hidden">
+                <table className="w-full text-sm">
+                  <thead className="bg-muted/50 border-b">
+                    <tr>
+                      <th className="text-left p-4 font-medium">Book</th>
+                      <th className="text-left p-4 font-medium">Borrowed</th>
+                      <th className="text-left p-4 font-medium">Returned</th>
+                      <th className="text-right p-4 font-medium">Status</th>
+                    </tr>
+                  </thead>
+                  <tbody className="divide-y">
+                    {returnedHistory.map((b) => (
+                      <tr key={b.id} className="hover:bg-muted/30 transition-colors">
+                        <td className="p-4">
+                          <div className="font-medium">{(b.books as any).title}</div>
+                          <div className="text-xs text-muted-foreground">{(b.books as any).author}</div>
+                        </td>
+                        <td className="p-4 text-muted-foreground">{format(new Date(b.borrowed_at), "MMM d, yyyy")}</td>
+                        <td className="p-4 text-muted-foreground">{b.returned_at ? format(new Date(b.returned_at), "MMM d, yyyy") : "-"}</td>
+                        <td className="p-4 text-right">
+                          <Badge variant="outline" className="text-green-600 border-green-200 bg-green-50">
+                            <CheckCircle2 className="h-3 w-3 mr-1" /> Returned
+                          </Badge>
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+                {returnedHistory.length === 0 && <div className="p-8 text-center text-muted-foreground">No return history found.</div>}
+             </div>
+          </TabsContent>
+        </Tabs>
+      </main>
 
       {readingBook && (
         <PdfViewer
@@ -143,5 +190,16 @@ const MyBooks = () => {
     </div>
   );
 };
+
+const EmptyShelf = ({ message }: { message: string }) => (
+  <div className="flex flex-col items-center justify-center py-24 px-4 text-center rounded-2xl border-2 border-dashed bg-background">
+    <div className="bg-muted p-4 rounded-full mb-4">
+      <BookOpen className="h-10 w-10 text-muted-foreground/40" />
+    </div>
+    <h3 className="text-lg font-semibold">Your shelf is empty</h3>
+    <p className="text-muted-foreground max-w-xs mx-auto mb-6">{message}</p>
+    <Button variant="outline" onClick={() => window.location.href = '/'}>Browse Catalog</Button>
+  </div>
+);
 
 export default MyBooks;
