@@ -23,6 +23,7 @@ export type Database = {
           description: string | null
           id: string
           isbn: string | null
+          pdf_url: string | null
           title: string
           total_copies: number
           updated_at: string
@@ -35,6 +36,7 @@ export type Database = {
           description?: string | null
           id?: string
           isbn?: string | null
+          pdf_url?: string | null
           title: string
           total_copies?: number
           updated_at?: string
@@ -47,6 +49,7 @@ export type Database = {
           description?: string | null
           id?: string
           isbn?: string | null
+          pdf_url?: string | null
           title?: string
           total_copies?: number
           updated_at?: string

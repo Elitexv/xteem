@@ -4,6 +4,8 @@ import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
 import BookCard from "@/components/BookCard";
 import Navbar from "@/components/Navbar";
+import BorrowDialog from "@/components/BorrowDialog";
+import PdfViewer from "@/components/PdfViewer";
 import { Input } from "@/components/ui/input";
 import { useToast } from "@/hooks/use-toast";
 import { Search, Library, BookOpen } from "lucide-react";
@@ -13,7 +15,8 @@ const Index = () => {
   const { toast } = useToast();
   const queryClient = useQueryClient();
   const [search, setSearch] = useState("");
-  const [borrowingId, setBorrowingId] = useState<string | null>(null);
+  const [borrowBookId, setBorrowBookId] = useState<string | null>(null);
+  const [readingBook, setReadingBook] = useState<{ id: string; title: string; pdfUrl: string } | null>(null);
 
   const { data: books, isLoading } = useQuery({
     queryKey: ["books"],
@@ -25,11 +28,14 @@ const Index = () => {
   });
 
   const borrowMutation = useMutation({
-    mutationFn: async (bookId: string) => {
-      setBorrowingId(bookId);
+    mutationFn: async ({ bookId, days }: { bookId: string; days: number }) => {
+      const dueDate = new Date();
+      dueDate.setDate(dueDate.getDate() + days);
+
       const { error: borrowError } = await supabase.from("borrowings").insert({
         user_id: user!.id,
         book_id: bookId,
+        due_date: dueDate.toISOString(),
       });
       if (borrowError) throw borrowError;
 
@@ -43,15 +49,17 @@ const Index = () => {
       }
     },
     onSuccess: () => {
-      toast({ title: "Book borrowed!", description: "Due in 14 days." });
+      toast({ title: "Book borrowed!", description: "Check My Books to read and track your borrowing." });
       queryClient.invalidateQueries({ queryKey: ["books"] });
-      setBorrowingId(null);
+      setBorrowBookId(null);
     },
     onError: (error: Error) => {
       toast({ title: "Failed to borrow", description: error.message, variant: "destructive" });
-      setBorrowingId(null);
+      setBorrowBookId(null);
     },
   });
+
+  const borrowBook = books?.find((b) => b.id === borrowBookId);
 
   const filtered = books?.filter(
     (b) =>
@@ -59,11 +67,17 @@ const Index = () => {
       b.author.toLowerCase().includes(search.toLowerCase())
   );
 
+  const handleRead = (bookId: string) => {
+    const book = books?.find((b) => b.id === bookId);
+    if (book && (book as any).pdf_url) {
+      setReadingBook({ id: book.id, title: book.title, pdfUrl: (book as any).pdf_url });
+    }
+  };
+
   return (
     <div className="min-h-screen bg-background">
       <Navbar />
-      
-      {/* Hero */}
+
       <section className="py-16 px-4 text-center">
         <div className="container mx-auto max-w-2xl space-y-4">
           <Library className="h-12 w-12 mx-auto text-primary opacity-80" />
@@ -71,7 +85,7 @@ const Index = () => {
             Discover Your Next Read
           </h1>
           <p className="text-muted-foreground text-lg">
-            Browse our collection, borrow books, and enjoy reading.
+            Browse our collection, borrow books, and read online.
           </p>
           <div className="relative max-w-md mx-auto mt-6">
             <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
@@ -85,7 +99,6 @@ const Index = () => {
         </div>
       </section>
 
-      {/* Books Grid */}
       <section className="pb-16 px-4">
         <div className="container mx-auto">
           {isLoading ? (
@@ -101,8 +114,9 @@ const Index = () => {
                   <BookCard
                     book={book}
                     isLoggedIn={!!user}
-                    onBorrow={(id) => borrowMutation.mutate(id)}
-                    borrowing={borrowingId === book.id && borrowMutation.isPending}
+                    onBorrow={(id) => setBorrowBookId(id)}
+                    onRead={handleRead}
+                    borrowing={borrowBookId === book.id && borrowMutation.isPending}
                   />
                 </div>
               ))}
@@ -116,6 +130,27 @@ const Index = () => {
           )}
         </div>
       </section>
+
+      {/* Borrow dialog with days selection */}
+      {borrowBook && (
+        <BorrowDialog
+          bookTitle={borrowBook.title}
+          open={!!borrowBookId}
+          onOpenChange={(open) => !open && setBorrowBookId(null)}
+          onConfirm={(days) => borrowMutation.mutate({ bookId: borrowBook.id, days })}
+          loading={borrowMutation.isPending}
+        />
+      )}
+
+      {/* PDF Viewer */}
+      {readingBook && (
+        <PdfViewer
+          pdfUrl={readingBook.pdfUrl}
+          title={readingBook.title}
+          open={!!readingBook}
+          onOpenChange={(open) => !open && setReadingBook(null)}
+        />
+      )}
     </div>
   );
 };

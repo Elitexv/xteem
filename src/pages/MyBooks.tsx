@@ -1,3 +1,4 @@
+import { useState } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
@@ -6,13 +7,15 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { useToast } from "@/hooks/use-toast";
-import { BookOpen, RotateCcw } from "lucide-react";
+import { BookOpen, RotateCcw, Eye } from "lucide-react";
 import { format } from "date-fns";
+import PdfViewer from "@/components/PdfViewer";
 
 const MyBooks = () => {
   const { user } = useAuth();
   const { toast } = useToast();
   const queryClient = useQueryClient();
+  const [readingBook, setReadingBook] = useState<{ title: string; pdfUrl: string } | null>(null);
 
   const { data: borrowings, isLoading } = useQuery({
     queryKey: ["my-borrowings", user?.id],
@@ -89,6 +92,17 @@ const MyBooks = () => {
                       </p>
                     </div>
                     <div className="flex items-center gap-2">
+                      {b.status === "borrowed" && (book as any)?.pdf_url && (
+                        <Button
+                          size="sm"
+                          variant="outline"
+                          onClick={() => setReadingBook({ title: book?.title, pdfUrl: (book as any).pdf_url })}
+                          className="gap-1"
+                        >
+                          <Eye className="h-3 w-3" />
+                          Read
+                        </Button>
+                      )}
                       <Badge variant={b.status === "borrowed" ? "default" : "secondary"}>
                         {b.status}
                       </Badge>
@@ -117,6 +131,15 @@ const MyBooks = () => {
           </div>
         )}
       </div>
+
+      {readingBook && (
+        <PdfViewer
+          pdfUrl={readingBook.pdfUrl}
+          title={readingBook.title}
+          open={!!readingBook}
+          onOpenChange={(open) => !open && setReadingBook(null)}
+        />
+      )}
     </div>
   );
 };
