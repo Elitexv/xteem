@@ -233,26 +233,69 @@ const Admin = () => {
             <CardTitle className="font-display flex items-center gap-2">
               <Users className="h-5 w-5" /> All Borrowings ({borrowings?.length || 0})
             </CardTitle>
+            <div className="flex flex-col sm:flex-row gap-2 mt-3">
+              <div className="relative flex-1">
+                <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                <Input
+                  placeholder="Search by book title or author..."
+                  value={borrowSearch}
+                  onChange={(e) => setBorrowSearch(e.target.value)}
+                  className="pl-9"
+                />
+              </div>
+              <Select value={statusFilter} onValueChange={setStatusFilter}>
+                <SelectTrigger className="w-full sm:w-[150px]">
+                  <SelectValue placeholder="Status" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">All statuses</SelectItem>
+                  <SelectItem value="borrowed">Borrowed</SelectItem>
+                  <SelectItem value="returned">Returned</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
           </CardHeader>
           <CardContent>
             <div className="space-y-2">
-              {borrowings?.map((b) => {
-                const book = b.books as any;
-                return (
-                  <div key={b.id} className="flex items-center justify-between p-3 rounded-lg bg-muted/50">
-                    <div>
-                      <p className="font-medium">{book?.title}</p>
-                      <p className="text-sm text-muted-foreground">
-                        Borrowed {format(new Date(b.borrowed_at), "MMM d, yyyy")} · Due {format(new Date(b.due_date), "MMM d, yyyy")}
-                      </p>
+              {borrowings
+                ?.filter((b) => {
+                  const book = b.books as any;
+                  const matchesSearch =
+                    !borrowSearch ||
+                    book?.title?.toLowerCase().includes(borrowSearch.toLowerCase()) ||
+                    book?.author?.toLowerCase().includes(borrowSearch.toLowerCase());
+                  const matchesStatus = statusFilter === "all" || b.status === statusFilter;
+                  return matchesSearch && matchesStatus;
+                })
+                .map((b) => {
+                  const book = b.books as any;
+                  return (
+                    <div key={b.id} className="flex items-center justify-between p-3 rounded-lg bg-muted/50">
+                      <div>
+                        <p className="font-medium">{book?.title}</p>
+                        <p className="text-sm text-muted-foreground">
+                          {book?.author} · Borrowed {format(new Date(b.borrowed_at), "MMM d, yyyy")} · Due {format(new Date(b.due_date), "MMM d, yyyy")}
+                        </p>
+                      </div>
+                      <Badge variant={b.status === "borrowed" ? "default" : "secondary"}>{b.status}</Badge>
                     </div>
-                    <Badge variant={b.status === "borrowed" ? "default" : "secondary"}>{b.status}</Badge>
-                  </div>
-                );
-              })}
+                  );
+                })}
               {(!borrowings || borrowings.length === 0) && (
                 <p className="text-muted-foreground text-center py-4">No borrowings yet.</p>
               )}
+              {borrowings && borrowings.length > 0 &&
+                borrowings.filter((b) => {
+                  const book = b.books as any;
+                  const matchesSearch =
+                    !borrowSearch ||
+                    book?.title?.toLowerCase().includes(borrowSearch.toLowerCase()) ||
+                    book?.author?.toLowerCase().includes(borrowSearch.toLowerCase());
+                  const matchesStatus = statusFilter === "all" || b.status === statusFilter;
+                  return matchesSearch && matchesStatus;
+                }).length === 0 && (
+                  <p className="text-muted-foreground text-center py-4">No borrowings match your filters.</p>
+                )}
             </div>
           </CardContent>
         </Card>
