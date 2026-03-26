@@ -92,6 +92,17 @@ const MyBooks = () => {
                       </p>
                     </div>
                     <div className="flex items-center gap-2">
+                      {b.status === "borrowed" && (book as any)?.pdf_url && (
+                        <Button
+                          size="sm"
+                          variant="outline"
+                          onClick={() => setReadingBook({ title: book?.title, pdfUrl: (book as any).pdf_url })}
+                          className="gap-1"
+                        >
+                          <Eye className="h-3 w-3" />
+                          Read
+                        </Button>
+                      )}
                       <Badge variant={b.status === "borrowed" ? "default" : "secondary"}>
                         {b.status}
                       </Badge>
