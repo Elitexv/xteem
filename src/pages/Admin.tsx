@@ -10,7 +10,8 @@ import { Textarea } from "@/components/ui/textarea";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { useToast } from "@/hooks/use-toast";
-import { Plus, BookOpen, Trash2, Users, Upload } from "lucide-react";
+import { Plus, BookOpen, Trash2, Users, Upload, Search } from "lucide-react";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Navigate } from "react-router-dom";
 import { format } from "date-fns";
 
