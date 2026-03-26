@@ -131,6 +131,15 @@ const MyBooks = () => {
           </div>
         )}
       </div>
+
+      {readingBook && (
+        <PdfViewer
+          pdfUrl={readingBook.pdfUrl}
+          title={readingBook.title}
+          open={!!readingBook}
+          onOpenChange={(open) => !open && setReadingBook(null)}
+        />
+      )}
     </div>
   );
 };
