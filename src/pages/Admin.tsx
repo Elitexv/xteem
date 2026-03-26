@@ -10,7 +10,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { useToast } from "@/hooks/use-toast";
-import { Plus, BookOpen, Trash2, Users } from "lucide-react";
+import { Plus, BookOpen, Trash2, Users, Upload } from "lucide-react";
 import { Navigate } from "react-router-dom";
 import { format } from "date-fns";
 
@@ -24,6 +24,8 @@ const Admin = () => {
   const [description, setDescription] = useState("");
   const [isbn, setIsbn] = useState("");
   const [copies, setCopies] = useState("1");
+  const [pdfFile, setPdfFile] = useState<File | null>(null);
+  const [coverFile, setCoverFile] = useState<File | null>(null);
   const [showForm, setShowForm] = useState(false);
 
   const { data: books } = useQuery({
@@ -50,6 +52,31 @@ const Admin = () => {
   const addBookMutation = useMutation({
     mutationFn: async () => {
       const totalCopies = parseInt(copies) || 1;
+      let pdfUrl: string | null = null;
+      let coverUrl: string | null = null;
+
+      // Upload PDF
+      if (pdfFile) {
+        const fileName = `${Date.now()}-${pdfFile.name}`;
+        const { error: uploadError } = await supabase.storage
+          .from("book-pdfs")
+          .upload(fileName, pdfFile, { contentType: "application/pdf" });
+        if (uploadError) throw uploadError;
+        const { data: urlData } = supabase.storage.from("book-pdfs").getPublicUrl(fileName);
+        pdfUrl = urlData.publicUrl;
+      }
+
+      // Upload cover image
+      if (coverFile) {
+        const fileName = `${Date.now()}-${coverFile.name}`;
+        const { error: uploadError } = await supabase.storage
+          .from("book-covers")
+          .upload(fileName, coverFile);
+        if (uploadError) throw uploadError;
+        const { data: urlData } = supabase.storage.from("book-covers").getPublicUrl(fileName);
+        coverUrl = urlData.publicUrl;
+      }
+
       const { error } = await supabase.from("books").insert({
         title,
         author,
@@ -57,12 +84,15 @@ const Admin = () => {
         isbn: isbn || null,
         total_copies: totalCopies,
         available_copies: totalCopies,
-      });
+        pdf_url: pdfUrl,
+        cover_url: coverUrl,
+      } as any);
       if (error) throw error;
     },
     onSuccess: () => {
       toast({ title: "Book added!" });
       setTitle(""); setAuthor(""); setDescription(""); setIsbn(""); setCopies("1");
+      setPdfFile(null); setCoverFile(null);
       setShowForm(false);
       queryClient.invalidateQueries({ queryKey: ["books"] });
     },
@@ -127,9 +157,29 @@ const Admin = () => {
                   <Label>Copies</Label>
                   <Input type="number" min="1" value={copies} onChange={(e) => setCopies(e.target.value)} />
                 </div>
+                <div className="space-y-2">
+                  <Label>Book PDF *</Label>
+                  <Input
+                    type="file"
+                    accept=".pdf"
+                    onChange={(e) => setPdfFile(e.target.files?.[0] || null)}
+                    required
+                  />
+                  {pdfFile && <p className="text-xs text-muted-foreground">{pdfFile.name}</p>}
+                </div>
+                <div className="space-y-2">
+                  <Label>Cover Image</Label>
+                  <Input
+                    type="file"
+                    accept="image/*"
+                    onChange={(e) => setCoverFile(e.target.files?.[0] || null)}
+                  />
+                  {coverFile && <p className="text-xs text-muted-foreground">{coverFile.name}</p>}
+                </div>
                 <div className="md:col-span-2">
-                  <Button type="submit" disabled={addBookMutation.isPending}>
-                    {addBookMutation.isPending ? "Adding..." : "Add Book"}
+                  <Button type="submit" disabled={addBookMutation.isPending} className="gap-2">
+                    <Upload className="h-4 w-4" />
+                    {addBookMutation.isPending ? "Uploading..." : "Add Book"}
                   </Button>
                 </div>
               </form>
@@ -148,9 +198,14 @@ const Admin = () => {
             <div className="space-y-2">
               {books?.map((book) => (
                 <div key={book.id} className="flex items-center justify-between p-3 rounded-lg bg-muted/50">
-                  <div>
-                    <p className="font-medium">{book.title}</p>
-                    <p className="text-sm text-muted-foreground">{book.author} · {book.available_copies}/{book.total_copies} available</p>
+                  <div className="flex items-center gap-3">
+                    <div>
+                      <p className="font-medium">{book.title}</p>
+                      <p className="text-sm text-muted-foreground">
+                        {book.author} · {book.available_copies}/{book.total_copies} available
+                        {(book as any).pdf_url && " · 📄 PDF"}
+                      </p>
+                    </div>
                   </div>
                   <Button
                     variant="ghost"
@@ -185,7 +240,7 @@ const Admin = () => {
                     <div>
                       <p className="font-medium">{book?.title}</p>
                       <p className="text-sm text-muted-foreground">
-                        Borrowed {format(new Date(b.borrowed_at), "MMM d, yyyy")}
+                        Borrowed {format(new Date(b.borrowed_at), "MMM d, yyyy")} · Due {format(new Date(b.due_date), "MMM d, yyyy")}
                       </p>
                     </div>
                     <Badge variant={b.status === "borrowed" ? "default" : "secondary"}>{b.status}</Badge>
