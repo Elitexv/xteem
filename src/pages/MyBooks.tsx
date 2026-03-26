@@ -6,8 +6,9 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { useToast } from "@/hooks/use-toast";
-import { BookOpen, RotateCcw } from "lucide-react";
+import { BookOpen, RotateCcw, Eye } from "lucide-react";
 import { format } from "date-fns";
+import PdfViewer from "@/components/PdfViewer";
 
 const MyBooks = () => {
   const { user } = useAuth();
