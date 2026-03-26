@@ -28,6 +28,8 @@ const Admin = () => {
   const [pdfFile, setPdfFile] = useState<File | null>(null);
   const [coverFile, setCoverFile] = useState<File | null>(null);
   const [showForm, setShowForm] = useState(false);
+  const [borrowSearch, setBorrowSearch] = useState("");
+  const [statusFilter, setStatusFilter] = useState<string>("all");
 
   const { data: books } = useQuery({
     queryKey: ["books"],
