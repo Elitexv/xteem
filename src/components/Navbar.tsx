@@ -10,7 +10,7 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
-import { BookOpen, LogOut, Shield, User, Library, LayoutDashboard, ChevronDown } from "lucide-react";
+import { BookOpen, LogOut, Shield, User, Library, ChevronDown } from "lucide-react";
 
 const Navbar = () => {
   const { user, isAdmin, signOut } = useAuth();
@@ -22,7 +22,6 @@ const Navbar = () => {
     navigate("/");
   };
 
-  // Define core nav items for scalability
   const navItems = [
     { name: "Discover", path: "/", icon: Library, public: true },
     { name: "My Books", path: "/my-books", icon: BookOpen, public: false },
@@ -42,7 +41,7 @@ const Navbar = () => {
           </span>
         </Link>
 
-        {/* Center Navigation - Advanced Display with Active States */}
+        {/* Center Navigation */}
         <div className="hidden md:flex items-center gap-1">
           {navItems.map((item) => {
             if (!item.public && !user) return null;
@@ -70,15 +69,14 @@ const Navbar = () => {
           {user ? (
             <DropdownMenu>
               <DropdownMenuTrigger asChild>
-                <Button variant="ghost" className="pl-2 pr-3 gap-3 h-10 rounded-full border border-border/50 hover:bg-accent">
+                <Button variant="ghost" className="pl-2 pr-3 gap-2 sm:gap-3 h-10 rounded-full border border-border/50 hover:bg-accent">
                   <Avatar className="h-7 w-7">
-                    {/* Fallback to user's initial or an icon if no image exists */}
-                    <AvatarImage src={""} alt={user?.email || "User"} />
+                    <AvatarImage src="" alt={user?.email || "User"} />
                     <AvatarFallback className="bg-primary/10 text-primary text-xs">
-                      {user?.email?.charAt(0).toUpperCase() || <User className="h-4 w-4" />}
+                      {user?.email?.charAt(0).toUpperCase() || "U"}
                     </AvatarFallback>
                   </Avatar>
-                  <span className="hidden sm:inline-block text-sm font-medium">
+                  <span className="hidden sm:inline-block text-sm font-medium max-w-[120px] truncate">
                     {user?.email?.split("@")[0] || "Account"}
                   </span>
                   <ChevronDown className="h-4 w-4 text-muted-foreground hidden sm:block" />
@@ -89,34 +87,31 @@ const Navbar = () => {
                 <DropdownMenuLabel className="font-normal">
                   <div className="flex flex-col space-y-1">
                     <p className="text-sm font-medium leading-none">{user?.email?.split("@")[0] || "Library Member"}</p>
-                    <p className="text-xs leading-none text-muted-foreground">{user?.email}</p>
+                    <p className="text-xs leading-none text-muted-foreground truncate">{user?.email}</p>
                   </div>
                 </DropdownMenuLabel>
                 <DropdownMenuSeparator />
                 
-                {/* Mobile-only nav items inside dropdown to save space */}
+                {/* Mobile-only nav items */}
                 <div className="md:hidden">
-                  <DropdownMenuItem asChild>
-                    <Link to="/my-books" className="cursor-pointer flex w-full items-center">
-                      <BookOpen className="mr-2 h-4 w-4" />
-                      <span>My Books</span>
-                    </Link>
+                  <DropdownMenuItem onSelect={() => navigate("/my-books")} className="cursor-pointer">
+                    <BookOpen className="mr-2 h-4 w-4" />
+                    <span>My Books</span>
                   </DropdownMenuItem>
                   <DropdownMenuSeparator />
                 </div>
 
                 {isAdmin && (
-                  <DropdownMenuItem asChild>
-                    <Link to="/admin" className="cursor-pointer flex w-full items-center">
+                  <>
+                    <DropdownMenuItem onSelect={() => navigate("/admin")} className="cursor-pointer">
                       <Shield className="mr-2 h-4 w-4" />
                       <span>Admin Dashboard</span>
-                    </Link>
-                  </DropdownMenuItem>
+                    </DropdownMenuItem>
+                    <DropdownMenuSeparator />
+                  </>
                 )}
                 
-                {isAdmin && <DropdownMenuSeparator />}
-                
-                <DropdownMenuItem onClick={handleSignOut} className="cursor-pointer text-destructive focus:text-destructive focus:bg-destructive/10">
+                <DropdownMenuItem onSelect={handleSignOut} className="cursor-pointer text-destructive focus:text-destructive focus:bg-destructive/10">
                   <LogOut className="mr-2 h-4 w-4" />
                   <span>Sign Out</span>
                 </DropdownMenuItem>
