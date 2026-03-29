@@ -338,7 +338,8 @@ const Admin = () => {
                 </div>
               </CardHeader>
               <CardContent>
-                <div className="rounded-md border">
+                {/* Desktop table */}
+                <div className="hidden sm:block rounded-md border">
                   <Table>
                     <TableHeader className="bg-muted/50">
                       <TableRow>
@@ -384,6 +385,40 @@ const Admin = () => {
                       )}
                     </TableBody>
                   </Table>
+                </div>
+                {/* Mobile cards */}
+                <div className="sm:hidden space-y-3">
+                  {borrowingsLoading ? (
+                    <p className="text-center py-8 text-muted-foreground">Loading records...</p>
+                  ) : (
+                    borrowings
+                      ?.filter((b) => {
+                        const book = b.books as any;
+                        const matchesSearch = !borrowSearch || book?.title?.toLowerCase().includes(borrowSearch.toLowerCase()) || book?.author?.toLowerCase().includes(borrowSearch.toLowerCase());
+                        const matchesStatus = statusFilter === "all" || b.status === statusFilter;
+                        return matchesSearch && matchesStatus;
+                      })
+                      .map((b) => {
+                        const book = b.books as any;
+                        return (
+                          <div key={b.id} className="rounded-lg border p-4 space-y-2">
+                            <div className="flex items-start justify-between gap-2">
+                              <div>
+                                <p className="font-medium">{book?.title || "Unknown Book"}</p>
+                                <p className="text-xs text-muted-foreground">{book?.author}</p>
+                              </div>
+                              <Badge variant={b.status === "borrowed" ? "default" : "secondary"} className={`shrink-0 ${b.status === "borrowed" ? "bg-amber-500 hover:bg-amber-600" : ""}`}>
+                                {b.status === "borrowed" ? "Active" : "Returned"}
+                              </Badge>
+                            </div>
+                            <div className="flex gap-4 text-xs text-muted-foreground">
+                              <span>Borrowed: {format(new Date(b.borrowed_at), "MMM d")}</span>
+                              <span>Due: {format(new Date(b.due_date), "MMM d")}</span>
+                            </div>
+                          </div>
+                        );
+                      })
+                  )}
                 </div>
               </CardContent>
             </Card>
