@@ -11,10 +11,11 @@ type BookCardProps = {
   onRead?: (bookId: string) => void;
   borrowing?: boolean;
   isLoggedIn?: boolean;
-  isBorrowed?: boolean; // New prop to show if the user already has it
+  isBorrowed?: boolean;
+  showReadButton?: boolean; // Only true when user has actively borrowed this book
 };
 
-const BookCard = ({ book, onBorrow, onRead, borrowing, isLoggedIn, isBorrowed }: BookCardProps) => {
+const BookCard = ({ book, onBorrow, onRead, borrowing, isLoggedIn, isBorrowed, showReadButton }: BookCardProps) => {
   const available = (book.available_copies ?? 0) > 0;
 
   return (
@@ -85,7 +86,7 @@ const BookCard = ({ book, onBorrow, onRead, borrowing, isLoggedIn, isBorrowed }:
           </span>
           
           <div className="flex gap-1">
-            {isLoggedIn && (book as any).pdf_url && (
+            {showReadButton && book.pdf_url && (
               <Button 
                 variant="ghost" 
                 size="icon" 

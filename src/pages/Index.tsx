@@ -5,7 +5,6 @@ import { useAuth } from "@/contexts/AuthContext";
 import BookCard from "@/components/BookCard";
 import Navbar from "@/components/Navbar";
 import BorrowDialog from "@/components/BorrowDialog";
-import PdfViewer from "@/components/PdfViewer";
 import { Input } from "@/components/ui/input";
 import { useToast } from "@/hooks/use-toast";
 import { Search, Library, BookOpen } from "lucide-react";
@@ -16,7 +15,6 @@ const Index = () => {
   const queryClient = useQueryClient();
   const [search, setSearch] = useState("");
   const [borrowBookId, setBorrowBookId] = useState<string | null>(null);
-  const [readingBook, setReadingBook] = useState<{ id: string; title: string; pdfUrl: string } | null>(null);
 
   const { data: books, isLoading } = useQuery({
     queryKey: ["books"],
@@ -67,12 +65,6 @@ const Index = () => {
       b.author.toLowerCase().includes(search.toLowerCase())
   );
 
-  const handleRead = (bookId: string) => {
-    const book = books?.find((b) => b.id === bookId);
-    if (book && (book as any).pdf_url) {
-      setReadingBook({ id: book.id, title: book.title, pdfUrl: (book as any).pdf_url });
-    }
-  };
 
   return (
     <div className="min-h-screen bg-background">
@@ -111,11 +103,10 @@ const Index = () => {
             <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-4">
               {filtered.map((book, i) => (
                 <div key={book.id} className="animate-fade-in" style={{ animationDelay: `${i * 50}ms` }}>
-                  <BookCard
+                    <BookCard
                     book={book}
                     isLoggedIn={!!user}
                     onBorrow={(id) => setBorrowBookId(id)}
-                    onRead={handleRead}
                     borrowing={borrowBookId === book.id && borrowMutation.isPending}
                   />
                 </div>
@@ -142,15 +133,6 @@ const Index = () => {
         />
       )}
 
-      {/* PDF Viewer */}
-      {readingBook && (
-        <PdfViewer
-          pdfUrl={readingBook.pdfUrl}
-          title={readingBook.title}
-          open={!!readingBook}
-          onOpenChange={(open) => !open && setReadingBook(null)}
-        />
-      )}
     </div>
   );
 };
