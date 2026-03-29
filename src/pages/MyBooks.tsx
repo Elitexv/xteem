@@ -145,36 +145,61 @@ const MyBooks = () => {
           </TabsContent>
 
           <TabsContent value="history" className="animate-in fade-in slide-in-from-right-4 duration-300">
-             <div className="rounded-xl border bg-background overflow-hidden">
-                <table className="w-full text-sm">
-                  <thead className="bg-muted/50 border-b">
-                    <tr>
-                      <th className="text-left p-4 font-medium">Book</th>
-                      <th className="text-left p-4 font-medium">Borrowed</th>
-                      <th className="text-left p-4 font-medium">Returned</th>
-                      <th className="text-right p-4 font-medium">Status</th>
+            {/* Desktop table */}
+            <div className="hidden sm:block rounded-xl border bg-background overflow-hidden">
+              <table className="w-full text-sm">
+                <thead className="bg-muted/50 border-b">
+                  <tr>
+                    <th className="text-left p-4 font-medium">Book</th>
+                    <th className="text-left p-4 font-medium">Borrowed</th>
+                    <th className="text-left p-4 font-medium">Returned</th>
+                    <th className="text-right p-4 font-medium">Status</th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y">
+                  {returnedHistory.map((b) => (
+                    <tr key={b.id} className="hover:bg-muted/30 transition-colors">
+                      <td className="p-4">
+                        <div className="font-medium">{(b.books as any).title}</div>
+                        <div className="text-xs text-muted-foreground">{(b.books as any).author}</div>
+                      </td>
+                      <td className="p-4 text-muted-foreground">{format(new Date(b.borrowed_at), "MMM d, yyyy")}</td>
+                      <td className="p-4 text-muted-foreground">{b.returned_at ? format(new Date(b.returned_at), "MMM d, yyyy") : "-"}</td>
+                      <td className="p-4 text-right">
+                        <Badge variant="outline" className="text-green-600 border-green-200 bg-green-50">
+                          <CheckCircle2 className="h-3 w-3 mr-1" /> Returned
+                        </Badge>
+                      </td>
                     </tr>
-                  </thead>
-                  <tbody className="divide-y">
-                    {returnedHistory.map((b) => (
-                      <tr key={b.id} className="hover:bg-muted/30 transition-colors">
-                        <td className="p-4">
-                          <div className="font-medium">{(b.books as any).title}</div>
-                          <div className="text-xs text-muted-foreground">{(b.books as any).author}</div>
-                        </td>
-                        <td className="p-4 text-muted-foreground">{format(new Date(b.borrowed_at), "MMM d, yyyy")}</td>
-                        <td className="p-4 text-muted-foreground">{b.returned_at ? format(new Date(b.returned_at), "MMM d, yyyy") : "-"}</td>
-                        <td className="p-4 text-right">
-                          <Badge variant="outline" className="text-green-600 border-green-200 bg-green-50">
-                            <CheckCircle2 className="h-3 w-3 mr-1" /> Returned
-                          </Badge>
-                        </td>
-                      </tr>
-                    ))}
-                  </tbody>
-                </table>
-                {returnedHistory.length === 0 && <div className="p-8 text-center text-muted-foreground">No return history found.</div>}
-             </div>
+                  ))}
+                </tbody>
+              </table>
+              {returnedHistory.length === 0 && <div className="p-8 text-center text-muted-foreground">No return history found.</div>}
+            </div>
+            {/* Mobile cards */}
+            <div className="sm:hidden space-y-3">
+              {returnedHistory.length === 0 ? (
+                <div className="p-8 text-center text-muted-foreground rounded-xl border bg-background">No return history found.</div>
+              ) : (
+                returnedHistory.map((b) => (
+                  <Card key={b.id} className="p-4">
+                    <div className="flex items-start justify-between gap-2">
+                      <div>
+                        <p className="font-medium text-sm">{(b.books as any).title}</p>
+                        <p className="text-xs text-muted-foreground">{(b.books as any).author}</p>
+                      </div>
+                      <Badge variant="outline" className="text-green-600 border-green-200 bg-green-50 shrink-0 text-[10px]">
+                        <CheckCircle2 className="h-3 w-3 mr-1" /> Returned
+                      </Badge>
+                    </div>
+                    <div className="mt-2 flex gap-4 text-xs text-muted-foreground">
+                      <span>Borrowed: {format(new Date(b.borrowed_at), "MMM d")}</span>
+                      <span>Returned: {b.returned_at ? format(new Date(b.returned_at), "MMM d") : "-"}</span>
+                    </div>
+                  </Card>
+                ))
+              )}
+            </div>
           </TabsContent>
         </Tabs>
       </main>

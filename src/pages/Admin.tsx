@@ -238,7 +238,8 @@ const Admin = () => {
                 <CardDescription>Manage your collection of books, PDFs, and availability.</CardDescription>
               </CardHeader>
               <CardContent>
-                <div className="rounded-md border">
+                {/* Desktop table */}
+                <div className="hidden sm:block rounded-md border">
                   <Table>
                     <TableHeader className="bg-muted/50">
                       <TableRow>
@@ -262,7 +263,7 @@ const Admin = () => {
                             </TableCell>
                             <TableCell>
                               <Badge variant={book.available_copies > 0 ? "secondary" : "destructive"}>
-                                {book.available_copies} / {book.total_copies} Available
+                                {book.available_copies} / {book.total_copies}
                               </Badge>
                             </TableCell>
                             <TableCell>
@@ -278,6 +279,34 @@ const Admin = () => {
                       )}
                     </TableBody>
                   </Table>
+                </div>
+                {/* Mobile cards */}
+                <div className="sm:hidden space-y-3">
+                  {booksLoading ? (
+                    <p className="text-center py-8 text-muted-foreground">Loading catalog...</p>
+                  ) : books?.length === 0 ? (
+                    <p className="text-center py-8 text-muted-foreground">No books in the catalog yet.</p>
+                  ) : (
+                    books?.map((book: any) => (
+                      <div key={book.id} className="rounded-lg border p-4 space-y-2">
+                        <div className="flex items-start justify-between gap-2">
+                          <div>
+                            <p className="font-medium text-foreground">{book.title}</p>
+                            <p className="text-sm text-muted-foreground">{book.author}</p>
+                          </div>
+                          <Badge variant={book.available_copies > 0 ? "secondary" : "destructive"} className="shrink-0">
+                            {book.available_copies}/{book.total_copies}
+                          </Badge>
+                        </div>
+                        <div className="flex items-center justify-between">
+                          {book.pdf_url ? <Badge variant="outline" className="gap-1"><FileText className="h-3 w-3" /> PDF</Badge> : <span />}
+                          <Button variant="ghost" size="sm" onClick={() => deleteBookMutation.mutate(book.id)} className="text-destructive hover:text-destructive hover:bg-destructive/10">
+                            <Trash2 className="h-4 w-4 mr-1" /> Delete
+                          </Button>
+                        </div>
+                      </div>
+                    ))
+                  )}
                 </div>
               </CardContent>
             </Card>
