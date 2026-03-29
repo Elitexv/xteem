@@ -5,7 +5,6 @@ import { useAuth } from "@/contexts/AuthContext";
 import BookCard from "@/components/BookCard";
 import Navbar from "@/components/Navbar";
 import BorrowDialog from "@/components/BorrowDialog";
-import PdfViewer from "@/components/PdfViewer";
 import { Input } from "@/components/ui/input";
 import { useToast } from "@/hooks/use-toast";
 import { Search, Library, BookOpen } from "lucide-react";
@@ -16,7 +15,6 @@ const Index = () => {
   const queryClient = useQueryClient();
   const [search, setSearch] = useState("");
   const [borrowBookId, setBorrowBookId] = useState<string | null>(null);
-  const [readingBook, setReadingBook] = useState<{ id: string; title: string; pdfUrl: string } | null>(null);
 
   const { data: books, isLoading } = useQuery({
     queryKey: ["books"],
@@ -67,27 +65,21 @@ const Index = () => {
       b.author.toLowerCase().includes(search.toLowerCase())
   );
 
-  const handleRead = (bookId: string) => {
-    const book = books?.find((b) => b.id === bookId);
-    if (book && (book as any).pdf_url) {
-      setReadingBook({ id: book.id, title: book.title, pdfUrl: (book as any).pdf_url });
-    }
-  };
 
   return (
     <div className="min-h-screen bg-background">
       <Navbar />
 
-      <section className="py-16 px-4 text-center">
-        <div className="container mx-auto max-w-2xl space-y-4">
-          <Library className="h-12 w-12 mx-auto text-primary opacity-80" />
-          <h1 className="font-display text-4xl md:text-5xl font-bold text-foreground">
+      <section className="py-10 sm:py-16 px-4 text-center">
+        <div className="container mx-auto max-w-2xl space-y-3 sm:space-y-4">
+          <Library className="h-10 w-10 sm:h-12 sm:w-12 mx-auto text-primary opacity-80" />
+          <h1 className="font-display text-3xl sm:text-4xl md:text-5xl font-bold text-foreground">
             Discover Your Next Read
           </h1>
-          <p className="text-muted-foreground text-lg">
+          <p className="text-muted-foreground text-base sm:text-lg">
             Browse our collection, borrow books, and read online.
           </p>
-          <div className="relative max-w-md mx-auto mt-6">
+          <div className="relative max-w-md mx-auto mt-4 sm:mt-6">
             <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
             <Input
               placeholder="Search by title or author..."
@@ -99,7 +91,7 @@ const Index = () => {
         </div>
       </section>
 
-      <section className="pb-16 px-4">
+      <section className="pb-10 sm:pb-16 px-4">
         <div className="container mx-auto">
           {isLoading ? (
             <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-4">
@@ -111,11 +103,10 @@ const Index = () => {
             <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-4">
               {filtered.map((book, i) => (
                 <div key={book.id} className="animate-fade-in" style={{ animationDelay: `${i * 50}ms` }}>
-                  <BookCard
+                    <BookCard
                     book={book}
                     isLoggedIn={!!user}
                     onBorrow={(id) => setBorrowBookId(id)}
-                    onRead={handleRead}
                     borrowing={borrowBookId === book.id && borrowMutation.isPending}
                   />
                 </div>
@@ -142,15 +133,6 @@ const Index = () => {
         />
       )}
 
-      {/* PDF Viewer */}
-      {readingBook && (
-        <PdfViewer
-          pdfUrl={readingBook.pdfUrl}
-          title={readingBook.title}
-          open={!!readingBook}
-          onOpenChange={(open) => !open && setReadingBook(null)}
-        />
-      )}
     </div>
   );
 };
