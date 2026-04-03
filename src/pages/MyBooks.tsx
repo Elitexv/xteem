@@ -205,6 +205,8 @@ const MyBooks = () => {
         </Tabs>
       </main>
 
+      <Footer />
+
       {readingBook && (
         <PdfViewer
           pdfUrl={readingBook.pdfUrl}

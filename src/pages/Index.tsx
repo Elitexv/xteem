@@ -123,6 +123,8 @@ const Index = () => {
         </div>
       </section>
 
+      <Footer />
+
       {/* Borrow dialog with days selection */}
       {borrowBook && (
         <BorrowDialog
