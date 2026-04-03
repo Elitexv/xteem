@@ -1,0 +1,22 @@
+{
+  "name": "eLibrary - Xteem",
+  "short_name": "eLibrary",
+  "description": "Your digital library — borrow, read, and discover books anytime, anywhere.",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#f5f0e8",
+  "theme_color": "#244f3e",
+  "orientation": "portrait-primary",
+  "icons": [
+    {
+      "src": "/icons/icon-192.png",
+      "sizes": "192x192",
+      "type": "image/png"
+    },
+    {
+      "src": "/icons/icon-512.png",
+      "sizes": "512x512",
+      "type": "image/png"
+    }
+  ]
+}

@@ -4,6 +4,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
 import BookCard from "@/components/BookCard";
 import Navbar from "@/components/Navbar";
+import Footer from "@/components/Footer";
 import BorrowDialog from "@/components/BorrowDialog";
 import { Input } from "@/components/ui/input";
 import { useToast } from "@/hooks/use-toast";
@@ -121,6 +122,8 @@ const Index = () => {
           )}
         </div>
       </section>
+
+      <Footer />
 
       {/* Borrow dialog with days selection */}
       {borrowBook && (
