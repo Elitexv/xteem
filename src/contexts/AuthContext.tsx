@@ -38,7 +38,16 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
 
   useEffect(() => {
     const { data: { subscription } } = supabase.auth.onAuthStateChange(
-      async (_event, session) => {
+      async (event, session) => {
+        if (event === "TOKEN_REFRESHED" && !session) {
+          // Refresh failed — clear stale state
+          await supabase.auth.signOut();
+          setSession(null);
+          setUser(null);
+          setIsAdmin(false);
+          setLoading(false);
+          return;
+        }
         setSession(session);
         setUser(session?.user ?? null);
         if (session?.user) {
@@ -56,6 +65,9 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
       if (session?.user) {
         await checkAdmin(session.user.id);
       }
+      setLoading(false);
+    }).catch(() => {
+      // Handle stale/invalid session gracefully
       setLoading(false);
     });
 
