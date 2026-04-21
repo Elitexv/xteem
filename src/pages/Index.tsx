@@ -7,6 +7,7 @@ import Navbar from "@/components/Navbar";
 import Footer from "@/components/Footer";
 import BorrowDialog from "@/components/BorrowDialog";
 import { Input } from "@/components/ui/input";
+import { Badge } from "@/components/ui/badge";
 import { useToast } from "@/hooks/use-toast";
 import { Search, Library, BookOpen } from "lucide-react";
 
@@ -26,8 +27,28 @@ const Index = () => {
     },
   });
 
+  const { data: activeBorrowings } = useQuery({
+    queryKey: ["active-borrowings", user?.id],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("borrowings")
+        .select("book_id")
+        .eq("user_id", user!.id)
+        .eq("status", "borrowed");
+      if (error) throw error;
+      return data;
+    },
+    enabled: !!user,
+  });
+
+  const activeBorrowedBookIds = new Set((activeBorrowings ?? []).map((item) => item.book_id));
+
   const borrowMutation = useMutation({
     mutationFn: async ({ bookId, days }: { bookId: string; days: number }) => {
+      if (activeBorrowedBookIds.has(bookId)) {
+        throw new Error("You already have this book borrowed. Return it before borrowing again.");
+      }
+
       const dueDate = new Date();
       dueDate.setDate(dueDate.getDate() + days);
 
@@ -40,6 +61,9 @@ const Index = () => {
 
       const book = books?.find((b) => b.id === bookId);
       if (book) {
+        if (book.available_copies <= 0) {
+          throw new Error("No copies are currently available for this book.");
+        }
         const { error: updateError } = await supabase
           .from("books")
           .update({ available_copies: book.available_copies - 1 })
@@ -66,28 +90,49 @@ const Index = () => {
       b.author.toLowerCase().includes(search.toLowerCase())
   );
 
+  const totalTitles = books?.length ?? 0;
+  const availableCopies = books?.reduce((sum, book) => sum + (book.available_copies ?? 0), 0) ?? 0;
+  const inStockTitles = books?.filter((book) => (book.available_copies ?? 0) > 0).length ?? 0;
 
   return (
     <div className="min-h-screen bg-background">
       <Navbar />
 
-      <section className="py-10 sm:py-16 px-4 text-center">
-        <div className="container mx-auto max-w-2xl space-y-3 sm:space-y-4">
-          <Library className="h-10 w-10 sm:h-12 sm:w-12 mx-auto text-primary opacity-80" />
-          <h1 className="font-display text-3xl sm:text-4xl md:text-5xl font-bold text-foreground">
-            Discover Your Next Read
-          </h1>
-          <p className="text-muted-foreground text-base sm:text-lg">
-            Browse our collection, borrow books, and read online.
-          </p>
-          <div className="relative max-w-md mx-auto mt-4 sm:mt-6">
-            <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-            <Input
-              placeholder="Search by title or author..."
-              value={search}
-              onChange={(e) => setSearch(e.target.value)}
-              className="pl-10"
-            />
+      <section className="px-4 pt-8 pb-6 sm:pt-12 sm:pb-10">
+        <div className="container mx-auto">
+          <div className="relative overflow-hidden rounded-2xl border border-border/70 bg-gradient-to-br from-primary/10 via-background to-accent/10 p-6 sm:p-10 text-center">
+            <div className="absolute inset-0 bg-[radial-gradient(circle_at_top_right,rgba(255,255,255,0.35),transparent_45%)] pointer-events-none" />
+            <div className="relative mx-auto max-w-2xl space-y-4">
+              <Library className="h-10 w-10 sm:h-12 sm:w-12 mx-auto text-primary opacity-90" />
+              <h1 className="font-display text-3xl sm:text-4xl md:text-5xl font-bold text-foreground">
+                Discover Your Next Read
+              </h1>
+              <p className="text-muted-foreground text-base sm:text-lg">
+                Browse our collection, borrow books, and read online.
+              </p>
+
+              <div className="flex flex-wrap items-center justify-center gap-2">
+                <Badge variant="secondary" className="px-3 py-1">
+                  {totalTitles} titles
+                </Badge>
+                <Badge variant="secondary" className="px-3 py-1">
+                  {availableCopies} copies available
+                </Badge>
+                <Badge variant="secondary" className="px-3 py-1">
+                  {inStockTitles} ready to borrow
+                </Badge>
+              </div>
+
+              <div className="relative max-w-md mx-auto mt-4 sm:mt-6">
+                <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                <Input
+                  placeholder="Search by title or author..."
+                  value={search}
+                  onChange={(e) => setSearch(e.target.value)}
+                  className="pl-10 bg-background/90"
+                />
+              </div>
+            </div>
           </div>
         </div>
       </section>
@@ -95,18 +140,19 @@ const Index = () => {
       <section className="pb-10 sm:pb-16 px-4">
         <div className="container mx-auto">
           {isLoading ? (
-            <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-4">
+            <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-4 sm:gap-5">
               {Array.from({ length: 8 }).map((_, i) => (
                 <div key={i} className="aspect-[3/5] bg-muted rounded-lg animate-pulse" />
               ))}
             </div>
           ) : filtered && filtered.length > 0 ? (
-            <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-4">
+            <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-4 sm:gap-5">
               {filtered.map((book, i) => (
                 <div key={book.id} className="animate-fade-in" style={{ animationDelay: `${i * 50}ms` }}>
-                    <BookCard
+                  <BookCard
                     book={book}
                     isLoggedIn={!!user}
+                    isBorrowed={activeBorrowedBookIds.has(book.id)}
                     onBorrow={(id) => setBorrowBookId(id)}
                     borrowing={borrowBookId === book.id && borrowMutation.isPending}
                   />
