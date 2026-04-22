@@ -26,14 +26,34 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   const [isAdmin, setIsAdmin] = useState(false);
   const [loading, setLoading] = useState(true);
 
-  const checkAdmin = async (userId: string) => {
-    const { data } = await supabase
-      .from("user_roles")
-      .select("role")
-      .eq("user_id", userId)
-      .eq("role", "admin")
-      .maybeSingle();
-    setIsAdmin(!!data);
+  const checkAdmin = async (userId: string, retries = 2): Promise<boolean> => {
+    const { data, error } = await supabase.rpc("has_role", {
+      _user_id: userId,
+      _role: "admin",
+    });
+
+    if (error) {
+      if (retries > 0) {
+        await new Promise((resolve) => setTimeout(resolve, 250));
+        return checkAdmin(userId, retries - 1);
+      }
+      return false;
+    }
+
+    return !!data;
+  };
+
+  const applySession = async (nextSession: Session | null) => {
+    setSession(nextSession);
+    setUser(nextSession?.user ?? null);
+
+    if (!nextSession?.user) {
+      setIsAdmin(false);
+      return;
+    }
+
+    const adminStatus = await checkAdmin(nextSession.user.id);
+    setIsAdmin(adminStatus);
   };
 
   useEffect(() => {
@@ -48,26 +68,20 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
           setLoading(false);
           return;
         }
-        setSession(session);
-        setUser(session?.user ?? null);
-        if (session?.user) {
-          await checkAdmin(session.user.id);
-        } else {
-          setIsAdmin(false);
-        }
+        setLoading(true);
+        await applySession(session);
         setLoading(false);
       }
     );
 
     supabase.auth.getSession().then(async ({ data: { session } }) => {
-      setSession(session);
-      setUser(session?.user ?? null);
-      if (session?.user) {
-        await checkAdmin(session.user.id);
-      }
+      await applySession(session);
       setLoading(false);
     }).catch(() => {
       // Handle stale/invalid session gracefully
+      setSession(null);
+      setUser(null);
+      setIsAdmin(false);
       setLoading(false);
     });
 
@@ -75,7 +89,14 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   }, []);
 
   const signOut = async () => {
-    await supabase.auth.signOut();
+    try {
+      await supabase.auth.signOut();
+    } finally {
+      // Always clear local auth state to prevent "stuck logged-in" UI.
+      setSession(null);
+      setUser(null);
+      setIsAdmin(false);
+    }
   };
 
   return (

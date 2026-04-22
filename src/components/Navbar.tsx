@@ -1,4 +1,5 @@
 import { Link, useNavigate, useLocation } from "react-router-dom";
+import { useQueryClient } from "@tanstack/react-query";
 import { useAuth } from "@/contexts/AuthContext";
 import { Button } from "@/components/ui/button";
 import {
@@ -11,11 +12,13 @@ import {
 } from "@/components/ui/dropdown-menu";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { BookOpen, LogOut, Shield, User, Library, ChevronDown } from "lucide-react";
+import { supabase } from "@/integrations/supabase/client";
 
 const Navbar = () => {
   const { user, isAdmin, signOut } = useAuth();
   const navigate = useNavigate();
   const location = useLocation();
+  const queryClient = useQueryClient();
 
   const handleSignOut = async () => {
     await signOut();
@@ -26,6 +29,60 @@ const Navbar = () => {
     { name: "Discover", path: "/", icon: Library, public: true },
     { name: "My Books", path: "/my-books", icon: BookOpen, public: false },
   ];
+
+  const prefetchRouteData = async (path: string) => {
+    if (path === "/") {
+      await queryClient.prefetchQuery({
+        queryKey: ["books"],
+        queryFn: async () => {
+          const { data, error } = await supabase.from("books").select("*").order("created_at", { ascending: false });
+          if (error) throw error;
+          return data;
+        },
+      });
+      return;
+    }
+
+    if (path === "/my-books" && user) {
+      await queryClient.prefetchQuery({
+        queryKey: ["my-borrowings", user.id],
+        queryFn: async () => {
+          const { data, error } = await supabase
+            .from("borrowings")
+            .select("*, books(*)")
+            .eq("user_id", user.id)
+            .order("borrowed_at", { ascending: false });
+          if (error) throw error;
+          return data;
+        },
+      });
+      return;
+    }
+
+    if (path === "/admin" && user && isAdmin) {
+      await Promise.all([
+        queryClient.prefetchQuery({
+          queryKey: ["books"],
+          queryFn: async () => {
+            const { data, error } = await supabase.from("books").select("*").order("created_at", { ascending: false });
+            if (error) throw error;
+            return data;
+          },
+        }),
+        queryClient.prefetchQuery({
+          queryKey: ["all-borrowings"],
+          queryFn: async () => {
+            const { data, error } = await supabase
+              .from("borrowings")
+              .select("*, books(*)")
+              .order("borrowed_at", { ascending: false });
+            if (error) throw error;
+            return data;
+          },
+        }),
+      ]);
+    }
+  };
 
   return (
     <nav className="sticky top-0 z-50 w-full border-b bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
@@ -48,7 +105,12 @@ const Navbar = () => {
             const isActive = location.pathname === item.path;
             
             return (
-              <Link key={item.path} to={item.path}>
+              <Link
+                key={item.path}
+                to={item.path}
+                onMouseEnter={() => void prefetchRouteData(item.path)}
+                onFocus={() => void prefetchRouteData(item.path)}
+              >
                 <Button
                   variant={isActive ? "secondary" : "ghost"}
                   size="sm"
@@ -94,7 +156,12 @@ const Navbar = () => {
                 
                 {/* Mobile-only nav items */}
                 <div className="md:hidden">
-                  <DropdownMenuItem onSelect={() => navigate("/my-books")} className="cursor-pointer">
+                  <DropdownMenuItem
+                    onMouseEnter={() => void prefetchRouteData("/my-books")}
+                    onFocus={() => void prefetchRouteData("/my-books")}
+                    onSelect={() => navigate("/my-books")}
+                    className="cursor-pointer"
+                  >
                     <BookOpen className="mr-2 h-4 w-4" />
                     <span>My Books</span>
                   </DropdownMenuItem>
@@ -103,7 +170,12 @@ const Navbar = () => {
 
                 {isAdmin && (
                   <>
-                    <DropdownMenuItem onSelect={() => navigate("/admin")} className="cursor-pointer">
+                    <DropdownMenuItem
+                      onMouseEnter={() => void prefetchRouteData("/admin")}
+                      onFocus={() => void prefetchRouteData("/admin")}
+                      onSelect={() => navigate("/admin")}
+                      className="cursor-pointer"
+                    >
                       <Shield className="mr-2 h-4 w-4" />
                       <span>Admin Dashboard</span>
                     </DropdownMenuItem>

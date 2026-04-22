@@ -62,6 +62,25 @@ const MyBooks = () => {
   const activeBorrowings = borrowings?.filter(b => b.status === 'borrowed') || [];
   const returnedHistory = borrowings?.filter(b => b.status === 'returned') || [];
 
+  if (!isLoading && activeBorrowings.length === 0) {
+    return (
+      <div className="min-h-screen bg-muted/30">
+        <Navbar />
+        <main className="container mx-auto px-4 py-10 max-w-5xl">
+          <div className="rounded-2xl border-2 border-dashed bg-background py-24 px-6 text-center">
+            <BookOpen className="mx-auto mb-4 h-12 w-12 text-muted-foreground/40" />
+            <h1 className="text-2xl font-semibold tracking-tight">No book borrowed</h1>
+            <p className="mt-2 text-muted-foreground">You have no active borrowed books right now.</p>
+            <Button className="mt-6" onClick={() => (window.location.href = "/")}>
+              Browse Catalog
+            </Button>
+          </div>
+        </main>
+        <Footer />
+      </div>
+    );
+  }
+
   return (
     <div className="min-h-screen bg-muted/30">
       <Navbar />
