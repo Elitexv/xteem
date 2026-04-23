@@ -1,4 +1,4 @@
-import { createContext, useContext, useEffect, useState, ReactNode } from "react";
+import { createContext, useContext, useEffect, useRef, useState, ReactNode } from "react";
 import { Session, User } from "@supabase/supabase-js";
 import { supabase } from "@/integrations/supabase/client";
 
@@ -25,25 +25,44 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   const [user, setUser] = useState<User | null>(null);
   const [isAdmin, setIsAdmin] = useState(false);
   const [loading, setLoading] = useState(true);
+  const adminCheckRequestRef = useRef(0);
+  const ADMIN_CACHE_PREFIX = "elib_admin_status:";
+  const clearAuthState = () => {
+    setSession(null);
+    setUser(null);
+    setIsAdmin(false);
+  };
 
-  const checkAdmin = async (userId: string, retries = 2): Promise<boolean> => {
+  const checkAdmin = async (userId: string, retries = 4): Promise<boolean | null> => {
     const { data, error } = await supabase.rpc("has_role", {
       _user_id: userId,
       _role: "admin",
     });
 
     if (error) {
+      // Fallback to direct query if RPC fails for any reason.
+      const { data: roleData, error: roleError } = await supabase
+        .from("user_roles")
+        .select("role")
+        .eq("user_id", userId)
+        .eq("role", "admin")
+        .maybeSingle();
+      if (!roleError) {
+        return !!roleData;
+      }
+
       if (retries > 0) {
-        await new Promise((resolve) => setTimeout(resolve, 250));
+        await new Promise((resolve) => setTimeout(resolve, 350));
         return checkAdmin(userId, retries - 1);
       }
-      return false;
+      return null;
     }
 
     return !!data;
   };
 
   const applySession = async (nextSession: Session | null) => {
+    const requestId = ++adminCheckRequestRef.current;
     setSession(nextSession);
     setUser(nextSession?.user ?? null);
 
@@ -52,38 +71,72 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
       return;
     }
 
+    const cacheKey = `${ADMIN_CACHE_PREFIX}${nextSession.user.id}`;
+    const cachedAdmin = localStorage.getItem(cacheKey);
+    if (cachedAdmin === "true") {
+      // Show stable admin UI during refresh while server check resolves.
+      setIsAdmin(true);
+    }
+
     const adminStatus = await checkAdmin(nextSession.user.id);
+    if (requestId !== adminCheckRequestRef.current) return;
+
+    if (adminStatus === null) {
+      // Keep current role state on transient failures.
+      return;
+    }
+
     setIsAdmin(adminStatus);
+    localStorage.setItem(cacheKey, adminStatus ? "true" : "false");
   };
 
   useEffect(() => {
     const { data: { subscription } } = supabase.auth.onAuthStateChange(
       async (event, session) => {
-        if (event === "TOKEN_REFRESHED" && !session) {
-          // Refresh failed — clear stale state
-          await supabase.auth.signOut();
-          setSession(null);
-          setUser(null);
-          setIsAdmin(false);
+        if (event === "SIGNED_OUT" || (event === "TOKEN_REFRESHED" && !session)) {
+          clearAuthState();
           setLoading(false);
           return;
         }
+
+        if (!session) {
+          clearAuthState();
+          setLoading(false);
+          return;
+        }
+
         setLoading(true);
         await applySession(session);
         setLoading(false);
       }
     );
 
-    supabase.auth.getSession().then(async ({ data: { session } }) => {
-      await applySession(session);
-      setLoading(false);
-    }).catch(() => {
-      // Handle stale/invalid session gracefully
-      setSession(null);
-      setUser(null);
-      setIsAdmin(false);
-      setLoading(false);
-    });
+    const initializeAuth = async () => {
+      try {
+        const { data: { session } } = await supabase.auth.getSession();
+        if (!session) {
+          clearAuthState();
+          setLoading(false);
+          return;
+        }
+
+        // Verify session token with server to avoid stale local sessions.
+        const { data: { user: verifiedUser }, error } = await supabase.auth.getUser();
+        if (error || !verifiedUser) {
+          clearAuthState();
+          setLoading(false);
+          return;
+        }
+
+        await applySession({ ...session, user: verifiedUser });
+      } catch {
+        clearAuthState();
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    void initializeAuth();
 
     return () => subscription.unsubscribe();
   }, []);
@@ -93,9 +146,18 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
       await supabase.auth.signOut();
     } finally {
       // Always clear local auth state to prevent "stuck logged-in" UI.
-      setSession(null);
-      setUser(null);
-      setIsAdmin(false);
+      adminCheckRequestRef.current += 1;
+      clearAuthState();
+      Object.keys(localStorage).forEach((key) => {
+        if (key.startsWith("sb-") || key.startsWith(ADMIN_CACHE_PREFIX)) {
+          localStorage.removeItem(key);
+        }
+      });
+      Object.keys(sessionStorage).forEach((key) => {
+        if (key.startsWith("sb-")) {
+          sessionStorage.removeItem(key);
+        }
+      });
     }
   };
 
