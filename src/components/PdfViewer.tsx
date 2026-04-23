@@ -1,7 +1,4 @@
-import { useState } from "react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
-import { Button } from "@/components/ui/button";
-import { ChevronLeft, ChevronRight, X } from "lucide-react";
 
 type PdfViewerProps = {
   pdfUrl: string;
@@ -21,12 +18,15 @@ const PdfViewer = ({ pdfUrl, title, open, onOpenChange }: PdfViewerProps) => {
           <DialogTitle className="font-display text-lg pr-8">{title}</DialogTitle>
         </DialogHeader>
         <div className="flex-1 min-h-0 px-4 pb-4">
-          <iframe
-            src={viewerUrl}
-            className="w-full h-full rounded-lg border"
-            title={`Reading: ${title}`}
-            sandbox="allow-scripts allow-same-origin allow-popups"
-          />
+          {open ? (
+            <iframe
+              key={viewerUrl}
+              src={viewerUrl}
+              className="w-full h-full rounded-lg border"
+              title={`Reading: ${title}`}
+              sandbox="allow-scripts allow-same-origin allow-popups"
+            />
+          ) : null}
         </div>
       </DialogContent>
     </Dialog>

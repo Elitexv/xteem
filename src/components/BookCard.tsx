@@ -70,6 +70,9 @@ const BookCard = ({ book, onBorrow, onRead, borrowing, isLoggedIn, isBorrowed, s
           <p className="text-xs font-medium text-muted-foreground">
             {book.author}
           </p>
+          <p className="text-[11px] font-semibold uppercase tracking-wide text-primary/80">
+            {book.category || "General"}
+          </p>
         </div>
         
         {book.description && (

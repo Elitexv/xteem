@@ -8,6 +8,7 @@ import Footer from "@/components/Footer";
 import BorrowDialog from "@/components/BorrowDialog";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
 import { useToast } from "@/hooks/use-toast";
 import { Search, Library, BookOpen } from "lucide-react";
 
@@ -16,6 +17,7 @@ const Index = () => {
   const { toast } = useToast();
   const queryClient = useQueryClient();
   const [search, setSearch] = useState("");
+  const [selectedCategories, setSelectedCategories] = useState<string[]>([]);
   const [borrowBookId, setBorrowBookId] = useState<string | null>(null);
 
   const { data: books, isLoading } = useQuery({
@@ -84,11 +86,27 @@ const Index = () => {
 
   const borrowBook = books?.find((b) => b.id === borrowBookId);
 
-  const filtered = books?.filter(
-    (b) =>
+  const categories = Array.from(
+    new Set((books ?? []).map((book) => book.category || "General"))
+  ).sort((a, b) => a.localeCompare(b));
+
+  const toggleCategory = (category: string) => {
+    setSelectedCategories((prev) =>
+      prev.includes(category)
+        ? prev.filter((item) => item !== category)
+        : [...prev, category]
+    );
+  };
+
+  const filtered = books?.filter((b) => {
+    const matchesSearch =
       b.title.toLowerCase().includes(search.toLowerCase()) ||
-      b.author.toLowerCase().includes(search.toLowerCase())
-  );
+      b.author.toLowerCase().includes(search.toLowerCase());
+    const matchesCategory =
+      selectedCategories.length === 0 ||
+      selectedCategories.includes(b.category || "General");
+    return matchesSearch && matchesCategory;
+  });
 
   const totalTitles = books?.length ?? 0;
   const availableCopies = books?.reduce((sum, book) => sum + (book.available_copies ?? 0), 0) ?? 0;
@@ -123,15 +141,48 @@ const Index = () => {
                 </Badge>
               </div>
 
-              <div className="relative max-w-md mx-auto mt-4 sm:mt-6">
-                <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-                <Input
-                  placeholder="Search by title or author..."
-                  value={search}
-                  onChange={(e) => setSearch(e.target.value)}
-                  className="pl-10 bg-background/90"
-                />
+              <div className="flex flex-col sm:flex-row gap-3 max-w-2xl mx-auto mt-4 sm:mt-6">
+                <div className="relative flex-1">
+                  <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                  <Input
+                    placeholder="Search by title or author..."
+                    value={search}
+                    onChange={(e) => setSearch(e.target.value)}
+                    className="pl-10 bg-background/90"
+                  />
+                </div>
               </div>
+
+              {categories.length > 0 && (
+                <div className="flex flex-wrap items-center justify-center gap-2 pt-1">
+                  {categories.map((category) => {
+                    const isSelected = selectedCategories.includes(category);
+                    return (
+                      <Button
+                        key={category}
+                        type="button"
+                        variant={isSelected ? "default" : "outline"}
+                        size="sm"
+                        onClick={() => toggleCategory(category)}
+                        className="h-8 rounded-full px-3"
+                      >
+                        {category}
+                      </Button>
+                    );
+                  })}
+                  {selectedCategories.length > 0 && (
+                    <Button
+                      type="button"
+                      variant="ghost"
+                      size="sm"
+                      onClick={() => setSelectedCategories([])}
+                      className="h-8 rounded-full px-3"
+                    >
+                      Clear filters
+                    </Button>
+                  )}
+                </div>
+              )}
             </div>
           </div>
         </div>

@@ -20,6 +20,19 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 
+const BOOK_CATEGORIES = [
+  "General",
+  "Fiction",
+  "Non-Fiction",
+  "Science",
+  "Technology",
+  "Business",
+  "History",
+  "Biography",
+  "Self-Help",
+  "Education",
+] as const;
+
 const Admin = () => {
   const { isAdmin, loading } = useAuth();
   const { toast } = useToast();
@@ -29,12 +42,52 @@ const Admin = () => {
   const [author, setAuthor] = useState("");
   const [description, setDescription] = useState("");
   const [isbn, setIsbn] = useState("");
+  const [category, setCategory] = useState<string>("General");
   const [copies, setCopies] = useState("1");
   const [pdfFile, setPdfFile] = useState<File | null>(null);
   const [coverFile, setCoverFile] = useState<File | null>(null);
   const [isAddBookOpen, setIsAddBookOpen] = useState(false); // Controls Dialog
   const [borrowSearch, setBorrowSearch] = useState("");
   const [statusFilter, setStatusFilter] = useState<string>("all");
+
+  const resetAddBookForm = () => {
+    setTitle("");
+    setAuthor("");
+    setDescription("");
+    setIsbn("");
+    setCategory("General");
+    setCopies("1");
+    setPdfFile(null);
+    setCoverFile(null);
+  };
+
+  const handlePdfSelection = (file: File | null) => {
+    if (!file) {
+      setPdfFile(null);
+      return;
+    }
+    const isPdf = file.type === "application/pdf" || file.name.toLowerCase().endsWith(".pdf");
+    if (!isPdf) {
+      toast({
+        title: "Invalid file type",
+        description: "Please select a valid PDF file.",
+        variant: "destructive",
+      });
+      setPdfFile(null);
+      return;
+    }
+    // Guard against very large files causing perceived UI freezing.
+    if (file.size > 50 * 1024 * 1024) {
+      toast({
+        title: "File too large",
+        description: "Please upload a PDF smaller than 50MB.",
+        variant: "destructive",
+      });
+      setPdfFile(null);
+      return;
+    }
+    setPdfFile(file);
+  };
 
   const { data: books, isLoading: booksLoading } = useQuery({
     queryKey: ["books"],
@@ -85,14 +138,14 @@ const Admin = () => {
 
       const { error } = await supabase.from("books").insert({
         title, author, description: description || null, isbn: isbn || null,
+        category,
         total_copies: totalCopies, available_copies: totalCopies, pdf_url: pdfUrl, cover_url: coverUrl,
       } as any);
       if (error) throw error;
     },
     onSuccess: () => {
       toast({ title: "Success", description: "Book added successfully!" });
-      setTitle(""); setAuthor(""); setDescription(""); setIsbn(""); setCopies("1");
-      setPdfFile(null); setCoverFile(null);
+      resetAddBookForm();
       setIsAddBookOpen(false); // Close dialog on success
       queryClient.invalidateQueries({ queryKey: ["books"] });
     },
@@ -133,7 +186,15 @@ const Admin = () => {
             <p className="text-muted-foreground mt-1">Manage your library catalog and user borrowings.</p>
           </div>
           
-          <Dialog open={isAddBookOpen} onOpenChange={setIsAddBookOpen}>
+          <Dialog
+            open={isAddBookOpen}
+            onOpenChange={(open) => {
+              setIsAddBookOpen(open);
+              if (!open && !addBookMutation.isPending) {
+                resetAddBookForm();
+              }
+            }}
+          >
             <DialogTrigger asChild>
               <Button className="gap-2 shadow-sm">
                 <Plus className="h-4 w-4" />
@@ -164,16 +225,42 @@ const Admin = () => {
                   <Input value={isbn} onChange={(e) => setIsbn(e.target.value)} placeholder="Optional" />
                 </div>
                 <div className="space-y-2">
+                  <Label>Category</Label>
+                  <Select value={category} onValueChange={setCategory}>
+                    <SelectTrigger>
+                      <SelectValue placeholder="Select category" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {BOOK_CATEGORIES.map((item) => (
+                        <SelectItem key={item} value={item}>
+                          {item}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+                <div className="space-y-2">
                   <Label>Total Copies</Label>
                   <Input type="number" min="1" value={copies} onChange={(e) => setCopies(e.target.value)} />
                 </div>
                 <div className="space-y-2">
                   <Label>Book PDF *</Label>
-                  <Input type="file" accept=".pdf" onChange={(e) => setPdfFile(e.target.files?.[0] || null)} required className="cursor-pointer" />
+                  <input
+                    type="file"
+                    accept=".pdf,application/pdf"
+                    onChange={(e) => handlePdfSelection(e.target.files?.[0] || null)}
+                    required
+                    className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm file:border-0 file:bg-transparent file:text-sm file:font-medium cursor-pointer"
+                  />
                 </div>
                 <div className="space-y-2">
                   <Label>Cover Image</Label>
-                  <Input type="file" accept="image/*" onChange={(e) => setCoverFile(e.target.files?.[0] || null)} className="cursor-pointer" />
+                  <input
+                    type="file"
+                    accept="image/*"
+                    onChange={(e) => setCoverFile(e.target.files?.[0] || null)}
+                    className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm file:border-0 file:bg-transparent file:text-sm file:font-medium cursor-pointer"
+                  />
                 </div>
                 <div className="md:col-span-2 pt-4">
                   <Button type="submit" disabled={addBookMutation.isPending} className="w-full gap-2">
@@ -244,6 +331,7 @@ const Admin = () => {
                     <TableHeader className="bg-muted/50">
                       <TableRow>
                         <TableHead>Title & Author</TableHead>
+                        <TableHead>Category</TableHead>
                         <TableHead>Availability</TableHead>
                         <TableHead>Assets</TableHead>
                         <TableHead className="text-right">Actions</TableHead>
@@ -251,15 +339,18 @@ const Admin = () => {
                     </TableHeader>
                     <TableBody>
                       {booksLoading ? (
-                        <TableRow><TableCell colSpan={4} className="text-center py-8 text-muted-foreground">Loading catalog...</TableCell></TableRow>
+                        <TableRow><TableCell colSpan={5} className="text-center py-8 text-muted-foreground">Loading catalog...</TableCell></TableRow>
                       ) : books?.length === 0 ? (
-                        <TableRow><TableCell colSpan={4} className="text-center py-8 text-muted-foreground">No books in the catalog yet.</TableCell></TableRow>
+                        <TableRow><TableCell colSpan={5} className="text-center py-8 text-muted-foreground">No books in the catalog yet.</TableCell></TableRow>
                       ) : (
                         books?.map((book: any) => (
                           <TableRow key={book.id}>
                             <TableCell>
                               <p className="font-medium text-foreground">{book.title}</p>
                               <p className="text-sm text-muted-foreground">{book.author}</p>
+                            </TableCell>
+                            <TableCell>
+                              <Badge variant="outline">{book.category || "General"}</Badge>
                             </TableCell>
                             <TableCell>
                               <Badge variant={book.available_copies > 0 ? "secondary" : "destructive"}>
