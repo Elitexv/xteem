@@ -1,8 +1,10 @@
-import { useEffect, useState } from "react";
+import { useState } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
+import { fetchAllBooks, fetchAllBorrowingsAdmin } from "@/lib/supabaseApi";
 import { useAuth } from "@/contexts/AuthContext";
 import Navbar from "@/components/Navbar";
+import PageLoader from "@/components/PageLoader";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -91,41 +93,21 @@ const Admin = () => {
 
   const { data: books, isLoading: booksLoading, isError: booksError, error: booksErrorData, refetch: refetchBooks } = useQuery({
     queryKey: ["books"],
-    queryFn: async () => {
-      const { data, error } = await supabase.from("books").select("*").order("created_at", { ascending: false });
-      if (error) throw error;
-      return data;
-    },
+    queryFn: () => fetchAllBooks(),
     enabled: !loading && isAdmin,
-    retry: 3,
-    retryDelay: (attempt) => Math.min(1000 * 2 ** attempt, 5000),
-    refetchOnMount: "always",
+    retry: 2,
+    retryDelay: (attempt) => Math.min(500 * 2 ** attempt, 4000),
     refetchOnReconnect: true,
   });
 
   const { data: borrowings, isLoading: borrowingsLoading, isError: borrowingsError, error: borrowingsErrorData, refetch: refetchBorrowings } = useQuery({
     queryKey: ["all-borrowings"],
-    queryFn: async () => {
-      const { data, error } = await supabase
-        .from("borrowings")
-        .select("*, books(*)")
-        .order("borrowed_at", { ascending: false });
-      if (error) throw error;
-      return data;
-    },
+    queryFn: () => fetchAllBorrowingsAdmin(),
     enabled: !loading && isAdmin,
-    retry: 3,
-    retryDelay: (attempt) => Math.min(1000 * 2 ** attempt, 5000),
-    refetchOnMount: "always",
+    retry: 2,
+    retryDelay: (attempt) => Math.min(500 * 2 ** attempt, 4000),
     refetchOnReconnect: true,
   });
-
-  useEffect(() => {
-    if (!loading && isAdmin) {
-      void refetchBooks();
-      void refetchBorrowings();
-    }
-  }, [loading, isAdmin, refetchBooks, refetchBorrowings]);
 
   const addBookMutation = useMutation({
     mutationFn: async () => {
@@ -187,7 +169,16 @@ const Admin = () => {
   const activeBorrowings = borrowings?.filter((b) => b.status === "borrowed").length || 0;
   const totalAvailable = books?.reduce((acc, book) => acc + (book.available_copies || 0), 0) || 0;
 
-  if (loading) return null;
+  if (loading) {
+    return (
+      <div className="min-h-screen bg-muted/20">
+        <Navbar />
+        <main className="container mx-auto px-4 py-8 max-w-6xl">
+          <PageLoader />
+        </main>
+      </div>
+    );
+  }
   if (!isAdmin) return <Navigate to="/" replace />;
 
   if (booksError || borrowingsError) {

@@ -1,6 +1,7 @@
 import { useState } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
+import { fetchActiveBorrowingBookIds, fetchAllBooks } from "@/lib/supabaseApi";
 import { useAuth } from "@/contexts/AuthContext";
 import BookCard from "@/components/BookCard";
 import Navbar from "@/components/Navbar";
@@ -11,6 +12,7 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { useToast } from "@/hooks/use-toast";
 import { Search, Library, BookOpen } from "lucide-react";
+import { Link } from "react-router-dom";
 
 const Index = () => {
   const { user } = useAuth();
@@ -20,34 +22,20 @@ const Index = () => {
   const [selectedCategories, setSelectedCategories] = useState<string[]>([]);
   const [borrowBookId, setBorrowBookId] = useState<string | null>(null);
 
-  const { data: books, isLoading, isError, error, refetch } = useQuery({
+  const { data: books, isLoading: booksLoading, isError, error, refetch } = useQuery({
     queryKey: ["books"],
-    queryFn: async () => {
-      const { data, error } = await supabase.from("books").select("*").order("created_at", { ascending: false });
-      if (error) throw error;
-      return data;
-    },
-    retry: 3,
-    retryDelay: (attempt) => Math.min(1000 * 2 ** attempt, 5000),
-    refetchOnMount: "always",
+    queryFn: () => fetchAllBooks(),
+    retry: 2,
+    retryDelay: (attempt) => Math.min(500 * 2 ** attempt, 4000),
     refetchOnReconnect: true,
   });
 
   const { data: activeBorrowings } = useQuery({
     queryKey: ["active-borrowings", user?.id],
-    queryFn: async () => {
-      const { data, error } = await supabase
-        .from("borrowings")
-        .select("book_id")
-        .eq("user_id", user!.id)
-        .eq("status", "borrowed");
-      if (error) throw error;
-      return data;
-    },
+    queryFn: () => fetchActiveBorrowingBookIds(user!.id),
     enabled: !!user,
     retry: 2,
-    retryDelay: (attempt) => Math.min(1000 * 2 ** attempt, 4000),
-    refetchOnMount: "always",
+    retryDelay: (attempt) => Math.min(500 * 2 ** attempt, 4000),
     refetchOnReconnect: true,
   });
 
@@ -138,6 +126,12 @@ const Index = () => {
               </p>
 
               <div className="flex flex-wrap items-center justify-center gap-2">
+                <Button variant="outline" size="sm" className="rounded-full" asChild>
+                  <Link to="/search" className="gap-1 inline-flex items-center">
+                    <Search className="h-3.5 w-3.5" />
+                    Advanced search
+                  </Link>
+                </Button>
                 <Badge variant="secondary" className="px-3 py-1">
                   {totalTitles} titles
                 </Badge>
@@ -198,7 +192,7 @@ const Index = () => {
 
       <section className="pb-10 sm:pb-16 px-4">
         <div className="container mx-auto">
-          {isLoading ? (
+          {booksLoading ? (
             <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-4 sm:gap-5">
               {Array.from({ length: 8 }).map((_, i) => (
                 <div key={i} className="aspect-[3/5] bg-muted rounded-lg animate-pulse" />

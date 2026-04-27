@@ -1,7 +1,6 @@
 import { useState } from "react";
 import { Navigate, useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
-import { lovable } from "@/integrations/lovable/index";
 import { useAuth } from "@/contexts/AuthContext";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -29,50 +28,74 @@ const Auth = () => {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setLoading(true);
-
-    if (isLogin) {
-      const normalizedEmail = email.trim().toLowerCase();
-      const { data, error } = await supabase.auth.signInWithPassword({ email: normalizedEmail, password });
-      if (error) {
-        toast({ title: "Login failed", description: error.message, variant: "destructive" });
-      } else if (!data.session) {
-        toast({
-          title: "Login incomplete",
-          description: "Session was not created. Please try again.",
-          variant: "destructive",
+    try {
+      if (isLogin) {
+        const normalizedEmail = email.trim().toLowerCase();
+        const { data, error } = await supabase.auth.signInWithPassword({ email: normalizedEmail, password });
+        if (error) {
+          toast({ title: "Login failed", description: error.message, variant: "destructive" });
+        } else if (!data.session) {
+          toast({
+            title: "Login incomplete",
+            description: "Session was not created. Please try again.",
+            variant: "destructive",
+          });
+        } else {
+          navigate("/");
+        }
+      } else {
+        const normalizedEmail = email.trim().toLowerCase();
+        const { error } = await supabase.auth.signUp({
+          email: normalizedEmail,
+          password,
+          options: {
+            data: { full_name: fullName },
+            emailRedirectTo: window.location.origin,
+          },
         });
-      } else {
-        navigate("/");
+        if (error) {
+          toast({ title: "Signup failed", description: error.message, variant: "destructive" });
+        } else {
+          toast({ title: "Account created!", description: "You are now signed in." });
+          navigate("/");
+        }
       }
-    } else {
-      const normalizedEmail = email.trim().toLowerCase();
-      const { error } = await supabase.auth.signUp({
-        email: normalizedEmail,
-        password,
-        options: {
-          data: { full_name: fullName },
-          emailRedirectTo: window.location.origin,
-        },
-      });
-      if (error) {
-        toast({ title: "Signup failed", description: error.message, variant: "destructive" });
-      } else {
-        toast({ title: "Account created!", description: "You are now signed in." });
-        navigate("/");
-      }
+    } finally {
+      setLoading(false);
     }
-    setLoading(false);
   };
 
   const handleGoogleSignIn = async () => {
     setLoading(true);
-    const { error } = await lovable.auth.signInWithOAuth("google", {
-      redirect_uri: window.location.origin,
-    });
-    if (error) {
-      toast({ title: "Google sign-in failed", description: String(error), variant: "destructive" });
+    try {
+      const { data, error } = await supabase.auth.signInWithOAuth({
+        provider: "google",
+        options: {
+          redirectTo: `${window.location.origin}/`,
+        },
+      });
+      if (error) {
+        toast({ title: "Google sign-in failed", description: error.message, variant: "destructive" });
+        return;
+      }
+      if (data.url) {
+        window.location.assign(data.url);
+        return;
+      }
+      toast({
+        title: "Google sign-in unavailable",
+        description: "Enable Google provider in Supabase → Authentication → Providers, then redeploy.",
+        variant: "destructive",
+      });
+    } catch (err) {
+      toast({
+        title: "Google sign-in failed",
+        description: err instanceof Error ? err.message : String(err),
+        variant: "destructive",
+      });
+    } finally {
+      setLoading(false);
     }
-    setLoading(false);
   };
 
   return (

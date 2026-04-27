@@ -31,6 +31,9 @@ const Footer = () => {
               <Link to="/my-books" className="text-sm text-muted-foreground hover:text-foreground transition-colors">
                 My Books
               </Link>
+              <Link to="/search" className="text-sm text-muted-foreground hover:text-foreground transition-colors">
+                Search
+              </Link>
               <Link to="/auth" className="text-sm text-muted-foreground hover:text-foreground transition-colors">
                 Sign In
               </Link>

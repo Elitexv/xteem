@@ -1,6 +1,7 @@
 import { useState } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
+import { fetchMyBorrowings } from "@/lib/supabaseApi";
 import { useAuth } from "@/contexts/AuthContext";
 import Navbar from "@/components/Navbar";
 import Footer from "@/components/Footer";
@@ -22,19 +23,10 @@ const MyBooks = () => {
 
   const { data: borrowings, isLoading, isError, error, refetch } = useQuery({
     queryKey: ["my-borrowings", user?.id],
-    queryFn: async () => {
-      const { data, error } = await supabase
-        .from("borrowings")
-        .select("*, books(*)")
-        .eq("user_id", user!.id)
-        .order("borrowed_at", { ascending: false });
-      if (error) throw error;
-      return data;
-    },
+    queryFn: () => fetchMyBorrowings(user!.id),
     enabled: !!user,
-    retry: 3,
-    retryDelay: (attempt) => Math.min(1000 * 2 ** attempt, 5000),
-    refetchOnMount: "always",
+    retry: 2,
+    retryDelay: (attempt) => Math.min(500 * 2 ** attempt, 4000),
     refetchOnReconnect: true,
   });
 

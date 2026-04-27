@@ -1,5 +1,6 @@
 import { createContext, useContext, useEffect, useRef, useState, ReactNode } from "react";
 import { Session, User } from "@supabase/supabase-js";
+import { useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 
 type AuthContextType = {
@@ -21,6 +22,7 @@ const AuthContext = createContext<AuthContextType>({
 export const useAuth = () => useContext(AuthContext);
 
 export const AuthProvider = ({ children }: { children: ReactNode }) => {
+  const queryClient = useQueryClient();
   const [session, setSession] = useState<Session | null>(null);
   const [user, setUser] = useState<User | null>(null);
   const [isAdmin, setIsAdmin] = useState(false);
@@ -33,7 +35,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     setIsAdmin(false);
   };
 
-  const checkAdmin = async (userId: string, retries = 4): Promise<boolean | null> => {
+  const checkAdmin = async (userId: string, retries = 2): Promise<boolean | null> => {
     const { data, error } = await supabase.rpc("has_role", {
       _user_id: userId,
       _role: "admin",
@@ -52,7 +54,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
       }
 
       if (retries > 0) {
-        await new Promise((resolve) => setTimeout(resolve, 350));
+        await new Promise((resolve) => setTimeout(resolve, 200));
         return checkAdmin(userId, retries - 1);
       }
       return null;
@@ -91,44 +93,47 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   };
 
   useEffect(() => {
-    const { data: { subscription } } = supabase.auth.onAuthStateChange(
-      async (event, session) => {
-        if (event === "SIGNED_OUT" || (event === "TOKEN_REFRESHED" && !session)) {
-          clearAuthState();
-          setLoading(false);
-          return;
-        }
-
-        if (!session) {
-          clearAuthState();
-          setLoading(false);
-          return;
-        }
-
-        setLoading(true);
-        await applySession(session);
+    const { data: { subscription } } = supabase.auth.onAuthStateChange((event, session) => {
+      if (event === "SIGNED_OUT" || (event === "TOKEN_REFRESHED" && !session)) {
+        clearAuthState();
         setLoading(false);
+        return;
       }
-    );
+
+      if (!session) {
+        clearAuthState();
+        setLoading(false);
+        return;
+      }
+
+      // Never await network/RPC inside this callback — Supabase can stall refresh until it returns.
+      queueMicrotask(() => {
+        void applySession(session);
+      });
+    });
+
+    const GET_USER_MS = 10_000;
+    const LOADING_FAILSAFE_MS = 12_000;
 
     const initializeAuth = async () => {
       try {
         const { data: { session } } = await supabase.auth.getSession();
         if (!session) {
           clearAuthState();
-          setLoading(false);
           return;
         }
 
-        // Verify session token with server to avoid stale local sessions.
-        const { data: { user: verifiedUser }, error } = await supabase.auth.getUser();
-        if (error || !verifiedUser) {
-          clearAuthState();
-          setLoading(false);
-          return;
-        }
+        const userRace = await Promise.race([
+          supabase.auth.getUser(),
+          new Promise<null>((resolve) => setTimeout(() => resolve(null), GET_USER_MS)),
+        ]);
 
-        await applySession({ ...session, user: verifiedUser });
+        if (userRace && !userRace.error && userRace.data.user) {
+          await applySession({ ...session, user: userRace.data.user });
+        } else {
+          // Offline / slow network: keep local session so the app is not stuck on "loading" forever.
+          await applySession(session);
+        }
       } catch {
         clearAuthState();
       } finally {
@@ -136,9 +141,18 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
       }
     };
 
-    void initializeAuth();
+    const failsafe = setTimeout(() => {
+      setLoading(false);
+    }, LOADING_FAILSAFE_MS);
 
-    return () => subscription.unsubscribe();
+    void initializeAuth().finally(() => {
+      clearTimeout(failsafe);
+    });
+
+    return () => {
+      clearTimeout(failsafe);
+      subscription.unsubscribe();
+    };
   }, []);
 
   const signOut = async () => {
@@ -148,6 +162,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
       // Always clear local auth state to prevent "stuck logged-in" UI.
       adminCheckRequestRef.current += 1;
       clearAuthState();
+      queryClient.clear();
       Object.keys(localStorage).forEach((key) => {
         if (key.startsWith("sb-") || key.startsWith(ADMIN_CACHE_PREFIX)) {
           localStorage.removeItem(key);
