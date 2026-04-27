@@ -20,13 +20,17 @@ const Index = () => {
   const [selectedCategories, setSelectedCategories] = useState<string[]>([]);
   const [borrowBookId, setBorrowBookId] = useState<string | null>(null);
 
-  const { data: books, isLoading } = useQuery({
+  const { data: books, isLoading, isError, error, refetch } = useQuery({
     queryKey: ["books"],
     queryFn: async () => {
       const { data, error } = await supabase.from("books").select("*").order("created_at", { ascending: false });
       if (error) throw error;
       return data;
     },
+    retry: 3,
+    retryDelay: (attempt) => Math.min(1000 * 2 ** attempt, 5000),
+    refetchOnMount: "always",
+    refetchOnReconnect: true,
   });
 
   const { data: activeBorrowings } = useQuery({
@@ -41,6 +45,10 @@ const Index = () => {
       return data;
     },
     enabled: !!user,
+    retry: 2,
+    retryDelay: (attempt) => Math.min(1000 * 2 ** attempt, 4000),
+    refetchOnMount: "always",
+    refetchOnReconnect: true,
   });
 
   const activeBorrowedBookIds = new Set((activeBorrowings ?? []).map((item) => item.book_id));
@@ -195,6 +203,13 @@ const Index = () => {
               {Array.from({ length: 8 }).map((_, i) => (
                 <div key={i} className="aspect-[3/5] bg-muted rounded-lg animate-pulse" />
               ))}
+            </div>
+          ) : isError ? (
+            <div className="text-center py-20 text-muted-foreground">
+              <BookOpen className="h-16 w-16 mx-auto mb-4 opacity-30" />
+              <p className="text-lg">Failed to load books.</p>
+              <p className="text-sm mb-4">{error instanceof Error ? error.message : "Please try again."}</p>
+              <Button onClick={() => void refetch()}>Retry now</Button>
             </div>
           ) : filtered && filtered.length > 0 ? (
             <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-4 sm:gap-5">

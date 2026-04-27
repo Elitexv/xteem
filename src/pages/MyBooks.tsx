@@ -20,7 +20,7 @@ const MyBooks = () => {
   const queryClient = useQueryClient();
   const [readingBook, setReadingBook] = useState<{ title: string; pdfUrl: string } | null>(null);
 
-  const { data: borrowings, isLoading } = useQuery({
+  const { data: borrowings, isLoading, isError, error, refetch } = useQuery({
     queryKey: ["my-borrowings", user?.id],
     queryFn: async () => {
       const { data, error } = await supabase
@@ -32,6 +32,10 @@ const MyBooks = () => {
       return data;
     },
     enabled: !!user,
+    retry: 3,
+    retryDelay: (attempt) => Math.min(1000 * 2 ** attempt, 5000),
+    refetchOnMount: "always",
+    refetchOnReconnect: true,
   });
 
   const returnMutation = useMutation({
@@ -61,6 +65,25 @@ const MyBooks = () => {
   // UX Logic: Separate active reads from history
   const activeBorrowings = borrowings?.filter(b => b.status === 'borrowed') || [];
   const returnedHistory = borrowings?.filter(b => b.status === 'returned') || [];
+
+  if (isError) {
+    return (
+      <div className="min-h-screen bg-muted/30">
+        <Navbar />
+        <main className="container mx-auto px-4 py-10 max-w-5xl">
+          <div className="rounded-2xl border-2 border-dashed bg-background py-24 px-6 text-center">
+            <BookOpen className="mx-auto mb-4 h-12 w-12 text-muted-foreground/40" />
+            <h1 className="text-2xl font-semibold tracking-tight">Failed to load your books</h1>
+            <p className="mt-2 text-muted-foreground">{error instanceof Error ? error.message : "Please try again."}</p>
+            <Button className="mt-6" onClick={() => void refetch()}>
+              Retry now
+            </Button>
+          </div>
+        </main>
+        <Footer />
+      </div>
+    );
+  }
 
   if (!isLoading && activeBorrowings.length === 0) {
     return (

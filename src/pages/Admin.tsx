@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
@@ -89,16 +89,21 @@ const Admin = () => {
     setPdfFile(file);
   };
 
-  const { data: books, isLoading: booksLoading } = useQuery({
+  const { data: books, isLoading: booksLoading, isError: booksError, error: booksErrorData, refetch: refetchBooks } = useQuery({
     queryKey: ["books"],
     queryFn: async () => {
       const { data, error } = await supabase.from("books").select("*").order("created_at", { ascending: false });
       if (error) throw error;
       return data;
     },
+    enabled: !loading && isAdmin,
+    retry: 3,
+    retryDelay: (attempt) => Math.min(1000 * 2 ** attempt, 5000),
+    refetchOnMount: "always",
+    refetchOnReconnect: true,
   });
 
-  const { data: borrowings, isLoading: borrowingsLoading } = useQuery({
+  const { data: borrowings, isLoading: borrowingsLoading, isError: borrowingsError, error: borrowingsErrorData, refetch: refetchBorrowings } = useQuery({
     queryKey: ["all-borrowings"],
     queryFn: async () => {
       const { data, error } = await supabase
@@ -108,7 +113,19 @@ const Admin = () => {
       if (error) throw error;
       return data;
     },
+    enabled: !loading && isAdmin,
+    retry: 3,
+    retryDelay: (attempt) => Math.min(1000 * 2 ** attempt, 5000),
+    refetchOnMount: "always",
+    refetchOnReconnect: true,
   });
+
+  useEffect(() => {
+    if (!loading && isAdmin) {
+      void refetchBooks();
+      void refetchBorrowings();
+    }
+  }, [loading, isAdmin, refetchBooks, refetchBorrowings]);
 
   const addBookMutation = useMutation({
     mutationFn: async () => {
@@ -172,6 +189,37 @@ const Admin = () => {
 
   if (loading) return null;
   if (!isAdmin) return <Navigate to="/" replace />;
+
+  if (booksError || borrowingsError) {
+    return (
+      <div className="min-h-screen bg-muted/20">
+        <Navbar />
+        <main className="container mx-auto px-4 py-10 max-w-4xl">
+          <Card className="border-border/50 shadow-sm">
+            <CardHeader>
+              <CardTitle>Failed to load admin data</CardTitle>
+              <CardDescription>
+                {booksErrorData instanceof Error
+                  ? booksErrorData.message
+                  : borrowingsErrorData instanceof Error
+                    ? borrowingsErrorData.message
+                    : "Please retry to load books and borrowings."}
+              </CardDescription>
+            </CardHeader>
+            <CardContent>
+              <Button
+                onClick={() => {
+                  void Promise.all([refetchBooks(), refetchBorrowings()]);
+                }}
+              >
+                Retry now
+              </Button>
+            </CardContent>
+          </Card>
+        </main>
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen bg-muted/20">
