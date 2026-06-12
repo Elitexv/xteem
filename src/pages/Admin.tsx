@@ -16,24 +16,11 @@ import { Plus, BookOpen, Trash2, Users, Upload, Search, Library, ArrowLeftRight,
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Navigate } from "react-router-dom";
 import { format } from "date-fns";
+import { DEFAULT_BOOK_CATEGORY, EDUCATIONAL_BOOK_CATEGORIES, formatBookCategory } from "@/lib/bookCategories";
 
-// New shadcn/ui imports needed for the modern layout
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
-
-const BOOK_CATEGORIES = [
-  "General",
-  "Fiction",
-  "Non-Fiction",
-  "Science",
-  "Technology",
-  "Business",
-  "History",
-  "Biography",
-  "Self-Help",
-  "Education",
-] as const;
 
 const Admin = () => {
   const { isAdmin, loading } = useAuth();
@@ -44,7 +31,7 @@ const Admin = () => {
   const [author, setAuthor] = useState("");
   const [description, setDescription] = useState("");
   const [isbn, setIsbn] = useState("");
-  const [category, setCategory] = useState<string>("General");
+  const [category, setCategory] = useState<string>(DEFAULT_BOOK_CATEGORY);
   const [copies, setCopies] = useState("1");
   const [pdfFile, setPdfFile] = useState<File | null>(null);
   const [coverFile, setCoverFile] = useState<File | null>(null);
@@ -57,7 +44,7 @@ const Admin = () => {
     setAuthor("");
     setDescription("");
     setIsbn("");
-    setCategory("General");
+    setCategory(DEFAULT_BOOK_CATEGORY);
     setCopies("1");
     setPdfFile(null);
     setCoverFile(null);
@@ -171,7 +158,7 @@ const Admin = () => {
 
   if (loading) {
     return (
-      <div className="min-h-screen bg-muted/20">
+      <div className="library-shell">
         <Navbar />
         <main className="container mx-auto px-4 py-8 max-w-6xl">
           <PageLoader />
@@ -183,10 +170,10 @@ const Admin = () => {
 
   if (booksError || borrowingsError) {
     return (
-      <div className="min-h-screen bg-muted/20">
+      <div className="library-shell">
         <Navbar />
         <main className="container mx-auto px-4 py-10 max-w-4xl">
-          <Card className="border-border/50 shadow-sm">
+          <Card className="classic-card">
             <CardHeader>
               <CardTitle>Failed to load admin data</CardTitle>
               <CardDescription>
@@ -213,16 +200,17 @@ const Admin = () => {
   }
 
   return (
-    <div className="min-h-screen bg-muted/20">
+    <div className="library-shell">
       <Navbar />
-      
-      <main className="container mx-auto px-4 py-8 max-w-6xl space-y-8 animate-in fade-in slide-in-from-bottom-4 duration-500">
+
+      <main className="container mx-auto px-4 py-8 max-w-6xl space-y-8">
         
         {/* Header Section */}
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
           <div>
-            <h1 className="font-display text-3xl font-bold tracking-tight">Admin Workspace</h1>
-            <p className="text-muted-foreground mt-1">Manage your library catalog and user borrowings.</p>
+            <p className="library-eyebrow">Administration</p>
+            <h1 className="font-display text-3xl font-bold tracking-tight">Library Administration</h1>
+            <p className="text-muted-foreground mt-1">Manage catalogue volumes, fields of study, and loan records.</p>
           </div>
           
           <Dialog
@@ -264,13 +252,13 @@ const Admin = () => {
                   <Input value={isbn} onChange={(e) => setIsbn(e.target.value)} placeholder="Optional" />
                 </div>
                 <div className="space-y-2">
-                  <Label>Category</Label>
+                  <Label>Field of study</Label>
                   <Select value={category} onValueChange={setCategory}>
                     <SelectTrigger>
                       <SelectValue placeholder="Select category" />
                     </SelectTrigger>
                     <SelectContent>
-                      {BOOK_CATEGORIES.map((item) => (
+                      {EDUCATIONAL_BOOK_CATEGORIES.map((item) => (
                         <SelectItem key={item} value={item}>
                           {item}
                         </SelectItem>
@@ -314,10 +302,10 @@ const Admin = () => {
 
         {/* Stats Overview */}
         <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-          <Card>
+          <Card className="classic-card">
             <CardContent className="p-6 flex items-center gap-4">
-              <div className="p-3 bg-primary/10 rounded-full text-primary">
-                <Library className="h-6 w-6" />
+              <div className="flex h-12 w-12 items-center justify-center border border-primary/20 bg-primary/5 text-primary">
+                <Library className="h-6 w-6" strokeWidth={1.5} />
               </div>
               <div>
                 <p className="text-sm font-medium text-muted-foreground">Total Titles</p>
@@ -325,10 +313,10 @@ const Admin = () => {
               </div>
             </CardContent>
           </Card>
-          <Card>
+          <Card className="classic-card">
             <CardContent className="p-6 flex items-center gap-4">
-              <div className="p-3 bg-blue-500/10 text-blue-500 rounded-full">
-                <BookOpen className="h-6 w-6" />
+              <div className="flex h-12 w-12 items-center justify-center border border-accent/30 bg-accent/10 text-accent">
+                <BookOpen className="h-6 w-6" strokeWidth={1.5} />
               </div>
               <div>
                 <p className="text-sm font-medium text-muted-foreground">Available Copies</p>
@@ -336,10 +324,10 @@ const Admin = () => {
               </div>
             </CardContent>
           </Card>
-          <Card>
+          <Card className="classic-card">
             <CardContent className="p-6 flex items-center gap-4">
-              <div className="p-3 bg-amber-500/10 text-amber-500 rounded-full">
-                <ArrowLeftRight className="h-6 w-6" />
+              <div className="flex h-12 w-12 items-center justify-center border border-primary/20 bg-secondary text-primary">
+                <ArrowLeftRight className="h-6 w-6" strokeWidth={1.5} />
               </div>
               <div>
                 <p className="text-sm font-medium text-muted-foreground">Active Borrowings</p>
@@ -358,10 +346,10 @@ const Admin = () => {
 
           {/* BOOKS TAB */}
           <TabsContent value="books">
-            <Card className="border-border/50 shadow-sm">
+            <Card className="classic-card">
               <CardHeader>
-                <CardTitle>Library Catalog</CardTitle>
-                <CardDescription>Manage your collection of books, PDFs, and availability.</CardDescription>
+                <CardTitle>Catalogue</CardTitle>
+                <CardDescription>Manage volumes, PDFs, fields of study, and shelf availability.</CardDescription>
               </CardHeader>
               <CardContent>
                 {/* Desktop table */}
@@ -370,7 +358,7 @@ const Admin = () => {
                     <TableHeader className="bg-muted/50">
                       <TableRow>
                         <TableHead>Title & Author</TableHead>
-                        <TableHead>Category</TableHead>
+                        <TableHead>Field</TableHead>
                         <TableHead>Availability</TableHead>
                         <TableHead>Assets</TableHead>
                         <TableHead className="text-right">Actions</TableHead>
@@ -389,7 +377,9 @@ const Admin = () => {
                               <p className="text-sm text-muted-foreground">{book.author}</p>
                             </TableCell>
                             <TableCell>
-                              <Badge variant="outline">{book.category || "General"}</Badge>
+                              <Badge variant="outline" className="rounded-sm font-normal">
+                                {formatBookCategory(book.category)}
+                              </Badge>
                             </TableCell>
                             <TableCell>
                               <Badge variant={book.available_copies > 0 ? "secondary" : "destructive"}>
@@ -418,11 +408,14 @@ const Admin = () => {
                     <p className="text-center py-8 text-muted-foreground">No books in the catalog yet.</p>
                   ) : (
                     books?.map((book: any) => (
-                      <div key={book.id} className="rounded-lg border p-4 space-y-2">
+                      <div key={book.id} className="classic-card rounded-sm p-4 space-y-2">
                         <div className="flex items-start justify-between gap-2">
                           <div>
                             <p className="font-medium text-foreground">{book.title}</p>
                             <p className="text-sm text-muted-foreground">{book.author}</p>
+                            <Badge variant="outline" className="mt-2 rounded-sm text-[10px] font-normal">
+                              {formatBookCategory(book.category)}
+                            </Badge>
                           </div>
                           <Badge variant={book.available_copies > 0 ? "secondary" : "destructive"} className="shrink-0">
                             {book.available_copies}/{book.total_copies}

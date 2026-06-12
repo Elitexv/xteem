@@ -13,6 +13,7 @@ import { useToast } from "@/hooks/use-toast";
 import { Search as SearchIcon, Library, BookOpen } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { fetchActiveBorrowingBookIds } from "@/lib/supabaseApi";
+import { formatBookCategory } from "@/lib/bookCategories";
 
 const Search = () => {
   const [searchParams, setSearchParams] = useSearchParams();
@@ -90,7 +91,8 @@ const Search = () => {
       (b) =>
         b.title.toLowerCase().includes(q) ||
         b.author.toLowerCase().includes(q) ||
-        (b.description ?? "").toLowerCase().includes(q)
+        (b.description ?? "").toLowerCase().includes(q) ||
+        formatBookCategory(b.category).toLowerCase().includes(q)
     );
   }, [books, q]);
 
@@ -101,26 +103,32 @@ const Search = () => {
   };
 
   return (
-    <div className="min-h-screen bg-background">
+    <div className="library-shell">
       <Navbar />
-      <main className="container mx-auto px-4 py-8 max-w-5xl space-y-6">
-        <div className="flex items-center gap-2 text-primary">
-          <Library className="h-8 w-8" />
-          <h1 className="font-display text-2xl font-bold">Search catalog</h1>
-        </div>
-        <form onSubmit={runSearch} className="flex flex-col sm:flex-row gap-2 max-w-xl">
+      <main className="container mx-auto max-w-5xl space-y-6 px-4 py-8">
+        <header className="border-b border-border pb-6">
+          <p className="library-eyebrow mb-2">Catalogue search</p>
+          <div className="flex items-center gap-3">
+            <Library className="h-8 w-8 text-primary" strokeWidth={1.5} />
+            <h1 className="font-display text-2xl font-bold">Search the collection</h1>
+          </div>
+          <p className="mt-2 max-w-2xl text-sm text-muted-foreground">
+            Search by title, author, description, or field of study.
+          </p>
+        </header>
+        <form onSubmit={runSearch} className="flex max-w-2xl flex-col gap-2 sm:flex-row">
           <div className="relative flex-1">
-            <SearchIcon className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+            <SearchIcon className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
             <Input
-              className="pl-9"
-              placeholder="Title, author, or description…"
+              className="classic-input h-11 pl-9"
+              placeholder="Title, author, field of study…"
               value={localQ}
               onChange={(e) => setLocalQ(e.target.value)}
             />
           </div>
-          <Button type="submit">Search</Button>
-          <Button type="button" variant="outline" asChild>
-            <Link to="/">Browse all</Link>
+          <Button type="submit" className="h-11">Search</Button>
+          <Button type="button" variant="outline" className="h-11" asChild>
+            <Link to="/">View catalogue</Link>
           </Button>
         </form>
 

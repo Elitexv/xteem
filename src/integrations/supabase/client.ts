@@ -9,7 +9,7 @@ const SUPABASE_ANON_KEY = creds?.anonKey ?? "";
 if (!creds && typeof window !== "undefined") {
   // eslint-disable-next-line no-console
   console.error(
-    "[eLibrary] Supabase env missing. Set VITE_SUPABASE_URL and VITE_SUPABASE_ANON_KEY (JWT anon key) on Vercel, then redeploy."
+    "[Xteem Library] Supabase env missing. Set VITE_SUPABASE_URL and VITE_SUPABASE_ANON_KEY (JWT anon key) on Vercel, then redeploy."
   );
 }
 

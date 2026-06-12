@@ -60,12 +60,12 @@ const MyBooks = () => {
 
   if (isError) {
     return (
-      <div className="min-h-screen bg-muted/30">
+      <div className="library-shell">
         <Navbar />
-        <main className="container mx-auto px-4 py-10 max-w-5xl">
-          <div className="rounded-2xl border-2 border-dashed bg-background py-24 px-6 text-center">
-            <BookOpen className="mx-auto mb-4 h-12 w-12 text-muted-foreground/40" />
-            <h1 className="text-2xl font-semibold tracking-tight">Failed to load your books</h1>
+        <main className="container mx-auto max-w-5xl px-4 py-10">
+          <div className="classic-card border-dashed py-24 px-6 text-center">
+            <BookOpen className="mx-auto mb-4 h-12 w-12 text-muted-foreground/40" strokeWidth={1.25} />
+            <h1 className="font-display text-2xl font-bold tracking-tight">Failed to load loans</h1>
             <p className="mt-2 text-muted-foreground">{error instanceof Error ? error.message : "Please try again."}</p>
             <Button className="mt-6" onClick={() => void refetch()}>
               Retry now
@@ -79,15 +79,15 @@ const MyBooks = () => {
 
   if (!isLoading && activeBorrowings.length === 0) {
     return (
-      <div className="min-h-screen bg-muted/30">
+      <div className="library-shell">
         <Navbar />
-        <main className="container mx-auto px-4 py-10 max-w-5xl">
-          <div className="rounded-2xl border-2 border-dashed bg-background py-24 px-6 text-center">
-            <BookOpen className="mx-auto mb-4 h-12 w-12 text-muted-foreground/40" />
-            <h1 className="text-2xl font-semibold tracking-tight">No book borrowed</h1>
-            <p className="mt-2 text-muted-foreground">You have no active borrowed books right now.</p>
+        <main className="container mx-auto max-w-5xl px-4 py-10">
+          <div className="classic-card border-dashed py-24 px-6 text-center">
+            <BookOpen className="mx-auto mb-4 h-12 w-12 text-muted-foreground/40" strokeWidth={1.25} />
+            <h1 className="font-display text-2xl font-bold tracking-tight">No active loans</h1>
+            <p className="mt-2 text-muted-foreground">You have no borrowed volumes at the moment.</p>
             <Button className="mt-6" onClick={() => (window.location.href = "/")}>
-              Browse Catalog
+              Browse catalogue
             </Button>
           </div>
         </main>
@@ -97,13 +97,14 @@ const MyBooks = () => {
   }
 
   return (
-    <div className="min-h-screen bg-muted/30">
+    <div className="library-shell">
       <Navbar />
-      
-      <main className="container mx-auto px-4 py-8 max-w-5xl">
-        <header className="mb-8">
-          <h1 className="text-3xl font-bold tracking-tight">Personal Library</h1>
-          <p className="text-muted-foreground">Manage your active loans and reading history.</p>
+
+      <main className="container mx-auto max-w-5xl px-4 py-8">
+        <header className="mb-8 border-b border-border pb-6">
+          <p className="library-eyebrow mb-2">My account</p>
+          <h1 className="font-display text-3xl font-bold tracking-tight">My loans</h1>
+          <p className="text-muted-foreground">Active borrowings and returned volumes.</p>
         </header>
 
         <Tabs defaultValue="current" className="space-y-6">

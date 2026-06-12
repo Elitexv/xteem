@@ -99,15 +99,20 @@ const Auth = () => {
   };
 
   return (
-    <div className="min-h-screen flex items-center justify-center px-4 bg-background">
-      <Card className="w-full max-w-md animate-fade-in">
-        <CardHeader className="text-center space-y-2">
-          <div className="flex justify-center">
-            <Library className="h-10 w-10 text-primary" />
+    <div className="library-shell flex min-h-screen items-center justify-center px-4 py-10">
+      <Card className="classic-card w-full max-w-md border-2 border-primary/15 shadow-md">
+        <CardHeader className="space-y-3 border-b border-border bg-card text-center">
+          <div className="mx-auto flex h-12 w-12 items-center justify-center border border-primary/20 bg-primary/5">
+            <Library className="h-6 w-6 text-primary" strokeWidth={1.5} />
           </div>
-          <CardTitle className="font-display text-2xl">{isLogin ? "Welcome Back" : "Create Account"}</CardTitle>
+          <p className="library-eyebrow">Xteem Library</p>
+          <CardTitle className="font-display text-2xl">
+            {isLogin ? "Member sign in" : "Create library account"}
+          </CardTitle>
           <CardDescription>
-            {isLogin ? "Sign in to browse and borrow books" : "Join our library community"}
+            {isLogin
+              ? "Access the academic catalogue and manage your loans."
+              : "Register to borrow educational resources online."}
           </CardDescription>
         </CardHeader>
         <CardContent className="space-y-4">

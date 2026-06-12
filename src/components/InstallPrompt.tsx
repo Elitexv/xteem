@@ -52,13 +52,13 @@ const InstallPrompt = () => {
 
   return (
     <div className="fixed bottom-4 left-4 right-4 z-50 mx-auto max-w-md animate-in slide-in-from-bottom-4 fade-in duration-500">
-      <div className="flex items-center gap-3 rounded-xl border bg-card p-4 shadow-lg">
+      <div className="classic-card flex items-center gap-3 rounded-sm p-4 shadow-lg">
         <div className="shrink-0 rounded-full bg-primary/10 p-2.5">
           <Download className="h-5 w-5 text-primary" />
         </div>
         <div className="flex-1 min-w-0">
-          <p className="text-sm font-semibold text-foreground">Install eLibrary</p>
-          <p className="text-xs text-muted-foreground">Add to home screen for quick access</p>
+          <p className="text-sm font-semibold text-foreground">Install Xteem Library</p>
+          <p className="text-xs text-muted-foreground">Add the catalogue to your home screen</p>
         </div>
         <div className="flex items-center gap-1.5 shrink-0">
           <Button size="sm" onClick={handleInstall} className="rounded-full px-4 shadow-sm">

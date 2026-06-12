@@ -23,88 +23,91 @@ const Navbar = () => {
   };
 
   const navItems = [
-    { name: "Discover", path: "/", icon: Library, public: true },
+    { name: "Catalogue", path: "/", icon: Library, public: true },
     { name: "Search", path: "/search", icon: Search, public: true },
-    { name: "My Books", path: "/my-books", icon: BookOpen, public: false },
+    { name: "My Loans", path: "/my-books", icon: BookOpen, public: false },
   ];
 
   return (
-    <nav className="sticky top-0 z-50 w-full border-b bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
-      <div className="container mx-auto px-4 h-16 flex items-center justify-between">
-        
-        {/* Brand */}
-        <Link to="/" className="flex items-center gap-2 transition-opacity hover:opacity-80">
-          <div className="bg-primary/10 p-2 rounded-lg">
-            <Library className="h-5 w-5 text-primary" />
+    <header className="sticky top-0 z-50 w-full border-b-2 border-primary/80 bg-primary text-primary-foreground shadow-md">
+      <div className="container mx-auto flex h-[4.25rem] items-center justify-between px-4">
+        <Link to="/" className="flex items-center gap-3 transition-opacity hover:opacity-90">
+          <div className="flex h-10 w-10 items-center justify-center border border-primary-foreground/20 bg-primary-foreground/10">
+            <Library className="h-5 w-5 text-accent" strokeWidth={1.5} />
           </div>
-          <span className="font-display text-xl font-bold tracking-tight text-foreground">
-            eLibrary
-          </span>
+          <div className="leading-tight">
+            <span className="font-display text-lg font-bold tracking-tight">Xteem Library</span>
+            <span className="block text-[10px] font-medium uppercase tracking-[0.18em] text-primary-foreground/70">
+              Digital Collections
+            </span>
+          </div>
         </Link>
 
-        {/* Center Navigation */}
-        <div className="hidden md:flex items-center gap-1">
+        <nav className="hidden md:flex items-center gap-0.5">
           {navItems.map((item) => {
             if (!item.public && !user) return null;
             const isActive = location.pathname === item.path;
-            
+
             return (
               <Link key={item.path} to={item.path}>
                 <Button
-                  variant={isActive ? "secondary" : "ghost"}
+                  variant="ghost"
                   size="sm"
-                  className={`gap-2 transition-all duration-200 ${
-                    isActive ? "bg-secondary text-secondary-foreground font-medium" : "text-muted-foreground hover:text-foreground"
+                  className={`gap-2 rounded-sm px-4 ${
+                    isActive
+                      ? "bg-primary-foreground/15 text-primary-foreground font-medium"
+                      : "text-primary-foreground/80 hover:bg-primary-foreground/10 hover:text-primary-foreground"
                   }`}
                 >
-                  <item.icon className="h-4 w-4" />
+                  <item.icon className="h-4 w-4" strokeWidth={1.5} />
                   {item.name}
                 </Button>
               </Link>
             );
           })}
-        </div>
+        </nav>
 
-        {/* Right Side - User Actions */}
-        <div className="flex items-center gap-3">
+        <div className="flex items-center gap-2">
           {user ? (
             <DropdownMenu>
               <DropdownMenuTrigger asChild>
-                <Button variant="ghost" className="pl-2 pr-3 gap-2 sm:gap-3 h-10 rounded-full border border-border/50 hover:bg-accent">
-                  <Avatar className="h-7 w-7">
+                <Button
+                  variant="ghost"
+                  className="h-10 gap-2 rounded-sm border border-primary-foreground/20 bg-primary-foreground/5 pl-2 pr-3 hover:bg-primary-foreground/10"
+                >
+                  <Avatar className="h-7 w-7 rounded-sm">
                     <AvatarImage src="" alt={user?.email || "User"} />
-                    <AvatarFallback className="bg-primary/10 text-primary text-xs">
+                    <AvatarFallback className="rounded-sm bg-accent text-[10px] font-bold text-accent-foreground">
                       {user?.email?.charAt(0).toUpperCase() || "U"}
                     </AvatarFallback>
                   </Avatar>
-                  <span className="hidden sm:inline-block text-sm font-medium max-w-[120px] truncate">
+                  <span className="hidden max-w-[120px] truncate text-sm font-medium sm:inline-block">
                     {user?.email?.split("@")[0] || "Account"}
                   </span>
-                  <ChevronDown className="h-4 w-4 text-muted-foreground hidden sm:block" />
+                  <ChevronDown className="hidden h-4 w-4 text-primary-foreground/70 sm:block" />
                 </Button>
               </DropdownMenuTrigger>
-              
-              <DropdownMenuContent align="end" className="w-56 mt-1">
+
+              <DropdownMenuContent align="end" className="w-56 mt-1 rounded-sm">
                 <DropdownMenuLabel className="font-normal">
                   <div className="flex flex-col space-y-1">
-                    <p className="text-sm font-medium leading-none">{user?.email?.split("@")[0] || "Library Member"}</p>
-                    <p className="text-xs leading-none text-muted-foreground truncate">{user?.email}</p>
+                    <p className="text-sm font-medium leading-none">{user?.email?.split("@")[0] || "Library member"}</p>
+                    <p className="truncate text-xs text-muted-foreground">{user?.email}</p>
                   </div>
                 </DropdownMenuLabel>
                 <DropdownMenuSeparator />
-                
-                {/* Mobile-only nav items */}
+
                 <div className="md:hidden">
                   <DropdownMenuItem onSelect={() => navigate("/my-books")} className="cursor-pointer">
                     <BookOpen className="mr-2 h-4 w-4" />
-                    <span>My Books</span>
+                    <span>My Loans</span>
                   </DropdownMenuItem>
                   <DropdownMenuSeparator />
                 </div>
 
                 <DropdownMenuItem onSelect={() => navigate("/search")} className="cursor-pointer">
                   <Search className="mr-2 h-4 w-4" />
-                  <span>Search catalog</span>
+                  <span>Search catalogue</span>
                 </DropdownMenuItem>
                 <DropdownMenuItem onSelect={() => navigate("/profile")} className="cursor-pointer">
                   <CircleUser className="mr-2 h-4 w-4" />
@@ -120,29 +123,36 @@ const Navbar = () => {
                   <>
                     <DropdownMenuItem onSelect={() => navigate("/admin")} className="cursor-pointer">
                       <Shield className="mr-2 h-4 w-4" />
-                      <span>Admin dashboard</span>
+                      <span>Administration</span>
                     </DropdownMenuItem>
                     <DropdownMenuSeparator />
                   </>
                 )}
-                
-                <DropdownMenuItem onClick={handleSignOut} className="cursor-pointer text-destructive focus:text-destructive focus:bg-destructive/10">
+
+                <DropdownMenuItem
+                  onClick={handleSignOut}
+                  className="cursor-pointer text-destructive focus:bg-destructive/10 focus:text-destructive"
+                >
                   <LogOut className="mr-2 h-4 w-4" />
-                  <span>Sign Out</span>
+                  <span>Sign out</span>
                 </DropdownMenuItem>
               </DropdownMenuContent>
             </DropdownMenu>
           ) : (
             <Link to="/auth">
-              <Button size="sm" className="gap-2 rounded-full px-6 shadow-sm transition-all hover:shadow-md">
+              <Button
+                size="sm"
+                variant="secondary"
+                className="gap-2 rounded-sm border border-primary-foreground/20 bg-primary-foreground px-5 text-primary hover:bg-primary-foreground/90"
+              >
                 <User className="h-4 w-4" />
-                Sign In
+                Sign in
               </Button>
             </Link>
           )}
         </div>
       </div>
-    </nav>
+    </header>
   );
 };
 

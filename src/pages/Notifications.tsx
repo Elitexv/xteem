@@ -5,10 +5,10 @@ import { Bell } from "lucide-react";
 
 const Notifications = () => {
   return (
-    <div className="min-h-screen bg-background">
+    <div className="library-shell">
       <Navbar />
-      <main className="container mx-auto px-4 py-10 max-w-lg">
-        <Card>
+      <main className="container mx-auto max-w-lg px-4 py-10">
+        <Card className="classic-card">
           <CardHeader>
             <div className="flex items-center gap-2">
               <Bell className="h-6 w-6 text-primary" />
