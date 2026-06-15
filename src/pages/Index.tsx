@@ -204,9 +204,9 @@ const Index = () => {
             </p>
           </div>
           {booksLoading ? (
-            <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-4 sm:gap-5">
-              {Array.from({ length: 8 }).map((_, i) => (
-                <div key={i} className="aspect-[3/5] bg-muted rounded-lg animate-pulse" />
+            <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 sm:gap-4 lg:grid-cols-3 xl:grid-cols-4 xl:gap-5">
+              {Array.from({ length: 6 }).map((_, i) => (
+                <div key={i} className="h-[8.5rem] animate-pulse rounded-sm bg-muted sm:aspect-[3/5] sm:h-auto" />
               ))}
             </div>
           ) : isError ? (
@@ -217,7 +217,7 @@ const Index = () => {
               <Button onClick={() => void refetch()}>Retry now</Button>
             </div>
           ) : filtered && filtered.length > 0 ? (
-            <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-4 sm:gap-5">
+            <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 sm:gap-4 lg:grid-cols-3 xl:grid-cols-4 xl:gap-5">
               {filtered.map((book, i) => (
                 <div key={book.id} className="animate-fade-in" style={{ animationDelay: `${i * 50}ms` }}>
                   <BookCard

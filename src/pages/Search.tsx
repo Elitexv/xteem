@@ -133,9 +133,9 @@ const Search = () => {
         </form>
 
         {booksLoading ? (
-          <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
-            {Array.from({ length: 6 }).map((_, i) => (
-              <div key={i} className="aspect-[3/5] bg-muted rounded-lg animate-pulse" />
+          <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 sm:gap-4 lg:grid-cols-3 xl:grid-cols-4">
+            {Array.from({ length: 4 }).map((_, i) => (
+              <div key={i} className="h-[8.5rem] animate-pulse rounded-sm bg-muted sm:aspect-[3/5] sm:h-auto" />
             ))}
           </div>
         ) : isError ? (
@@ -146,7 +146,7 @@ const Search = () => {
             <Button onClick={() => void refetch()}>Retry now</Button>
           </div>
         ) : filtered.length > 0 ? (
-          <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
+          <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 sm:gap-4 lg:grid-cols-3 xl:grid-cols-4">
             {filtered.map((book) => (
               <BookCard
                 key={book.id}
